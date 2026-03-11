@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vehicle Dynamics Engineer — Portfolio Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0D1117;
+    --bg-card: #161B22;
+    --bg-raised: #1C2333;
+    --blue: #1A6AFF;
+    --blue-dim: rgba(26,106,255,0.12);
+    --blue-glow: rgba(26,106,255,0.35);
+    --red: #E63946;
+    --red-dim: rgba(230,57,70,0.12);
+    --green: #3FB950;
+    --text: #E6EDF3;
+    --text-mid: #8B949E;
+    --text-dim: #484F58;
+    --border: #21262D;
+    --border-hover: #30363D;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ══════════════════════════════════
+     GRID BACKGROUND
+  ══════════════════════════════════ */
+  .grid-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(26,106,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(26,106,255,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* ══════════════════════════════════
+     NAV
+  ══════════════════════════════════ */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 60px;
+    background: rgba(13,17,23,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 40px;
+  }
+  .nav-inner {
+    max-width: 1200px; width: 100%; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-logo {
+    font-size: 15px; font-weight: 700; letter-spacing: 0.08em;
+    color: var(--text);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .nav-logo .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a {
+    color: var(--text-mid); text-decoration: none;
+    font-size: 13px; font-weight: 500; letter-spacing: 0.04em;
+    transition: color 0.2s;
+    position: relative; padding-bottom: 4px;
+  }
+  .nav-links a::after {
+    content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px;
+    background: var(--blue); transform: scaleX(0); transition: transform 0.2s;
+  }
+  .nav-links a:hover { color: var(--text); }
+  .nav-links a:hover::after { transform: scaleX(1); }
+  .nav-cta {
+    background: var(--blue); color: #fff; border: none; cursor: pointer;
+    padding: 8px 18px; border-radius: 6px; font-family: var(--font-display);
+    font-size: 13px; font-weight: 600; letter-spacing: 0.03em;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .nav-cta:hover { background: #2B7FFF; transform: translateY(-1px); }
+
+  /* ══════════════════════════════════
+     HERO
+  ══════════════════════════════════ */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    position: relative; padding: 100px 40px 60px;
+    overflow: hidden;
+  }
+  .hero-circuit {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.07;
+  }
+  .hero-glow {
+    position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%);
+    width: 600px; height: 400px;
+    background: radial-gradient(ellipse, rgba(26,106,255,0.2) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-content {
+    position: relative; z-index: 2;
+    max-width: 900px; text-align: center;
+  }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--blue-dim); border: 1px solid rgba(26,106,255,0.3);
+    padding: 6px 16px; border-radius: 100px;
+    font-family: var(--font-mono); font-size: 12px; color: var(--blue);
+    letter-spacing: 0.1em; margin-bottom: 28px;
+    animation: fadeUp 0.6s ease both;
+  }
+  .hero-tag .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+  .hero h1 {
+    font-size: clamp(42px, 7vw, 82px);
+    font-weight: 800; line-height: 1.05; letter-spacing: -0.02em;
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+  .hero h1 .accent { color: var(--blue); }
+  .hero h1 .accent-red { color: var(--red); }
+  .hero-sub {
+    font-size: 16px; color: var(--text-mid); max-width: 600px; margin: 0 auto 48px;
+    line-height: 1.7; font-weight: 400;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+  .hero-stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 1px; background: var(--border);
+    border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    max-width: 800px; margin: 0 auto 48px;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+  .hero-stat {
+    background: var(--bg-card);
+    padding: 20px 16px; text-align: center;
+    transition: background 0.2s;
+  }
+  .hero-stat:hover { background: var(--bg-raised); }
+  .hero-stat .num {
+    font-size: 28px; font-weight: 800; color: var(--blue);
+    font-family: var(--font-display); display: block;
+  }
+  .hero-stat .label {
+    font-size: 11px; color: var(--text-mid); margin-top: 4px;
+    font-family: var(--font-mono); letter-spacing: 0.05em; line-height: 1.4;
+  }
+  .hero-ctas {
+    display: flex; gap: 16px; justify-content: center;
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+  .btn-primary {
+    background: var(--blue); color: #fff; border: none; cursor: pointer;
+    padding: 14px 32px; border-radius: 8px; font-family: var(--font-display);
+    font-size: 15px; font-weight: 600; transition: all 0.2s; text-decoration: none;
+    display: inline-block;
+  }
+  .btn-primary:hover { background: #2B7FFF; transform: translateY(-2px); box-shadow: 0 8px 24px var(--blue-glow); }
+  .btn-secondary {
+    background: transparent; color: var(--text); cursor: pointer;
+    padding: 14px 32px; border-radius: 8px; font-family: var(--font-display);
+    font-size: 15px; font-weight: 600; transition: all 0.2s; text-decoration: none;
+    display: inline-block; border: 1px solid var(--border-hover);
+  }
+  .btn-secondary:hover { border-color: var(--blue); color: var(--blue); transform: translateY(-2px); }
+  .scroll-indicator {
+    position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    color: var(--text-dim); font-size: 11px; font-family: var(--font-mono); letter-spacing: 0.1em;
+    animation: float 2s infinite ease-in-out;
+  }
+  .scroll-line { width: 1px; height: 40px; background: linear-gradient(transparent, var(--blue)); }
+  @keyframes float { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(6px); } }
+
+  /* ══════════════════════════════════
+     SECTIONS
+  ══════════════════════════════════ */
+  section { padding: 100px 40px; position: relative; z-index: 1; }
+  .section-inner { max-width: 1200px; margin: 0 auto; }
+  .section-label {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--blue); letter-spacing: 0.15em;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 12px;
+  }
+  .section-label::after { content: ''; flex: 1; max-width: 80px; height: 1px; background: var(--blue-dim); }
+  .section-title {
+    font-size: clamp(28px, 4vw, 48px); font-weight: 800;
+    letter-spacing: -0.02em; margin-bottom: 56px;
+    line-height: 1.1;
+  }
+
+  /* ══════════════════════════════════
+     SKILLS
+  ══════════════════════════════════ */
+  #skills { background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .skills-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .skill-category {
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 28px; background: var(--bg);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .skill-category:hover { border-color: var(--blue); box-shadow: 0 0 24px var(--blue-dim); }
+  .skill-cat-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+  }
+  .skill-cat-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .icon-blue { background: var(--blue-dim); }
+  .icon-red { background: var(--red-dim); }
+  .icon-green { background: rgba(63,185,80,0.1); }
+  .icon-yellow { background: rgba(240,180,0,0.1); }
+  .skill-cat-name { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; }
+  .skill-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-family: var(--font-mono); font-size: 11px;
+    padding: 5px 12px; border-radius: 100px;
+    border: 1px solid var(--border); color: var(--text-mid);
+    transition: all 0.2s; cursor: default;
+  }
+  .chip:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+  .chip.red:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+  .chip.green:hover { border-color: var(--green); color: var(--green); background: rgba(63,185,80,0.1); }
+  .chip.yellow:hover { border-color: #F0B400; color: #F0B400; background: rgba(240,180,0,0.1); }
+
+  /* ══════════════════════════════════
+     EXPERIENCE TIMELINE
+  ══════════════════════════════════ */
+  #experience { background: var(--bg); }
+  .timeline {
+    position: relative; padding-left: 32px;
+  }
+  .timeline::before {
+    content: ''; position: absolute; left: 8px; top: 8px; bottom: 8px;
+    width: 2px; background: linear-gradient(var(--blue), transparent);
+  }
+  .timeline-entry { position: relative; margin-bottom: 48px; }
+  .timeline-dot {
+    position: absolute; left: -28px; top: 24px;
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid var(--blue); background: var(--bg);
+    transition: background 0.2s;
+  }
+  .timeline-entry:hover .timeline-dot { background: var(--blue); }
+  .exp-card {
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--bg-card); overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+  }
+  .exp-card:hover { border-color: var(--border-hover); box-shadow: 0 4px 24px rgba(0,0,0,0.3); }
+  .exp-card.open { border-color: var(--blue); }
+  .exp-card-header {
+    padding: 24px 28px;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  }
+  .exp-card-meta { flex: 1; }
+  .exp-org {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--blue); letter-spacing: 0.1em; margin-bottom: 6px;
+  }
+  .exp-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .exp-period { font-size: 12px; color: var(--text-mid); font-family: var(--font-mono); }
+  .exp-arrow {
+    width: 32px; height: 32px; border-radius: 8px;
+    border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+    color: var(--text-mid); transition: all 0.2s; flex-shrink: 0;
+    font-size: 12px; margin-top: 4px;
+  }
+  .exp-card.open .exp-arrow { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); transform: rotate(90deg); }
+  .exp-card-body { display: none; padding: 0 28px 28px; border-top: 1px solid var(--border); }
+  .exp-card.open .exp-card-body { display: block; }
+  .exp-kpis {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px; margin: 20px 0;
+  }
+  .exp-kpi {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; text-align: center;
+  }
+  .exp-kpi .num { font-size: 20px; font-weight: 800; color: var(--blue); display: block; }
+  .exp-kpi .lbl { font-size: 10px; color: var(--text-mid); font-family: var(--font-mono); line-height: 1.3; }
+  .exp-stack { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+  .stack-tag {
+    font-family: var(--font-mono); font-size: 11px;
+    background: var(--blue-dim); border: 1px solid rgba(26,106,255,0.2);
+    color: var(--blue); padding: 4px 12px; border-radius: 100px;
+  }
+  .exp-bullets { list-style: none; }
+  .exp-bullets li {
+    padding: 6px 0; color: var(--text-mid); font-size: 14px;
+    border-bottom: 1px solid var(--border); display: flex; gap: 12px;
+  }
+  .exp-bullets li:last-child { border-bottom: none; }
+  .exp-bullets li::before { content: '→'; color: var(--blue); flex-shrink: 0; font-family: var(--font-mono); }
+
+  /* ══════════════════════════════════
+     PROJECTS
+  ══════════════════════════════════ */
+  #projects { background: var(--bg-card); border-top: 1px solid var(--border); }
+  .projects-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .project-card {
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--bg); overflow: hidden;
+    transition: all 0.25s; cursor: pointer;
+  }
+  .project-card:hover { border-color: var(--blue); transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 24px var(--blue-dim); }
+  .project-cover {
+    height: 160px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px; position: relative; overflow: hidden;
+  }
+  .cover-1 { background: linear-gradient(135deg, #0D1117 0%, #1C2333 50%, rgba(26,106,255,0.15) 100%); }
+  .cover-2 { background: linear-gradient(135deg, #0D1117 0%, #1C2333 50%, rgba(230,57,70,0.15) 100%); }
+  .cover-3 { background: linear-gradient(135deg, #0D1117 0%, #1C2333 50%, rgba(63,185,80,0.12) 100%); }
+  .cover-4 { background: linear-gradient(135deg, #0D1117 0%, #1C2333 50%, rgba(240,180,0,0.12) 100%); }
+  .cover-5 { background: linear-gradient(135deg, #0D1117 0%, #1C2333 50%, rgba(26,106,255,0.2) 100%); }
+  .project-cover .cover-schematic {
+    position: absolute; inset: 0; opacity: 0.12;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 100px; font-family: var(--font-mono);
+    color: var(--blue);
+  }
+  .project-tag-id {
+    position: absolute; top: 12px; left: 12px;
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--blue); background: var(--blue-dim);
+    border: 1px solid rgba(26,106,255,0.2); padding: 2px 8px; border-radius: 4px;
+  }
+  .project-body { padding: 20px; }
+  .project-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .project-tag {
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--text-dim); background: var(--bg-raised);
+    padding: 2px 8px; border-radius: 4px;
+  }
+  .project-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; line-height: 1.3; }
+  .project-desc { font-size: 13px; color: var(--text-mid); line-height: 1.6; }
+  .project-footer {
+    padding: 12px 20px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .project-result { font-family: var(--font-mono); font-size: 11px; color: var(--green); }
+  .project-link { font-size: 12px; color: var(--blue); text-decoration: none; font-weight: 600; }
+
+  /* ══════════════════════════════════
+     INSIGHTS
+  ══════════════════════════════════ */
+  #insights { background: var(--bg); border-top: 1px solid var(--border); }
+  .blog-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .blog-card {
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; background: var(--bg-card);
+    transition: all 0.2s; cursor: pointer;
+  }
+  .blog-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+  .blog-type {
+    display: inline-block; font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.1em; padding: 3px 10px; border-radius: 100px;
+    margin-bottom: 14px; font-weight: 500;
+  }
+  .type-technical { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(26,106,255,0.2); }
+  .type-wip { background: rgba(240,180,0,0.1); color: #F0B400; border: 1px solid rgba(240,180,0,0.2); }
+  .type-opinion { background: rgba(63,185,80,0.1); color: var(--green); border: 1px solid rgba(63,185,80,0.2); }
+  .blog-title { font-size: 17px; font-weight: 700; margin-bottom: 10px; line-height: 1.4; }
+  .blog-excerpt { font-size: 13px; color: var(--text-mid); line-height: 1.6; margin-bottom: 16px; }
+  .blog-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); display: flex; gap: 16px; }
+
+  /* ══════════════════════════════════
+     CONTACT / RESOURCE
+  ══════════════════════════════════ */
+  #contact { background: var(--bg-card); border-top: 1px solid var(--border); }
+  .contact-simple { max-width: 600px; }
+  .contact-intro { color: var(--text-mid); font-size: 15px; line-height: 1.7; margin-bottom: 28px; }
+  .contact-buttons { display: flex; flex-direction: column; gap: 12px; }
+  .download-btn {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg-raised); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; cursor: pointer;
+    transition: all 0.2s; text-decoration: none; margin-bottom: 12px;
+    width: 100%;
+  }
+  .download-btn:hover { border-color: var(--blue); box-shadow: 0 0 16px var(--blue-dim); }
+  .download-icon {
+    width: 40px; height: 40px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .dl-cv { background: var(--blue-dim); }
+  .dl-li { background: rgba(0,119,181,0.12); }
+  .download-info .name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .download-info .desc { font-size: 12px; color: var(--text-mid); font-family: var(--font-mono); }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12px; color: var(--text-mid); font-family: var(--font-mono); margin-bottom: 6px; letter-spacing: 0.08em; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px;
+    color: var(--text); font-family: var(--font-display); font-size: 14px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--blue); }
+  .form-group textarea { resize: vertical; min-height: 100px; }
+  select option { background: var(--bg); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ══════════════════════════════════
+     FOOTER
+  ══════════════════════════════════ */
+  footer {
+    border-top: 1px solid var(--border); padding: 32px 40px;
+    background: var(--bg);
+  }
+  .footer-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .footer-left { font-size: 13px; color: var(--text-dim); font-family: var(--font-mono); }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a { font-size: 12px; color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--blue); }
+
+  /* ══════════════════════════════════
+     ANIMATIONS
+  ══════════════════════════════════ */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-up { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+  .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+  /* ══════════════════════════════════
+     RESPONSIVE
+  ══════════════════════════════════ */
+  @media (max-width: 900px) {
+    .hero-stats { grid-template-columns: repeat(2, 1fr); }
+    .skills-grid, .projects-grid, .blog-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .contact-grid { grid-template-columns: 1fr; }
+    .exp-kpis { grid-template-columns: repeat(2, 1fr); }
+    nav { padding: 0 20px; }
+    .nav-links { display: none; }
+    section { padding: 60px 20px; }
+  }
+  @media (max-width: 600px) {
+    .hero-stats { grid-template-columns: repeat(2, 1fr); }
+    .skills-grid, .projects-grid, .blog-grid { grid-template-columns: 1fr !important; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+
+  /* ══════════════════════════════════
+     EDUCATION
+  ══════════════════════════════════ */
+  #education { background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .edu-grid { display: flex; flex-direction: column; gap: 24px; }
+  .edu-card {
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--bg); overflow: hidden;
+    display: flex; gap: 0;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .edu-card:hover { border-color: var(--blue); box-shadow: 0 0 24px var(--blue-dim); }
+  .edu-card-left {
+    width: 80px; flex-shrink: 0;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 28px 0 28px;
+    border-right: 1px solid var(--border);
+    background: var(--bg-card);
+  }
+  .edu-logo {
+    width: 44px; height: 44px; border-radius: 10px;
+    background: var(--blue-dim); color: var(--blue);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  .edu-card-right { flex: 1; padding: 24px 28px; }
+  .edu-meta-row {
+    display: flex; align-items: flex-start;
+    justify-content: space-between; gap: 16px; margin-bottom: 20px;
+  }
+  .edu-inst {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--blue); letter-spacing: 0.1em; margin-bottom: 6px;
+  }
+  .edu-degree { font-size: 20px; font-weight: 700; margin-bottom: 5px; }
+  .edu-period { font-size: 12px; color: var(--text-mid); font-family: var(--font-mono); }
+  .edu-grade {
+    text-align: center; flex-shrink: 0;
+    background: var(--blue-dim); border: 1px solid rgba(26,106,255,0.2);
+    border-radius: 10px; padding: 10px 18px;
+  }
+  .edu-grade .grade-num { display: block; font-size: 26px; font-weight: 800; color: var(--blue); line-height: 1; }
+  .edu-grade .grade-lbl { display: block; font-size: 10px; color: var(--text-mid); font-family: var(--font-mono); margin-top: 4px; letter-spacing: 0.08em; }
+  .edu-modules-wrap { display: flex; flex-direction: column; gap: 16px; }
+  .edu-year-block {}
+  .edu-year-label {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--text-dim); letter-spacing: 0.08em;
+    margin-bottom: 8px; text-transform: uppercase;
+  }
+  .module-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .module-chip {
+    font-family: var(--font-mono); font-size: 11px;
+    padding: 4px 12px; border-radius: 100px;
+    border: 1px solid var(--border); color: var(--text-mid);
+    background: var(--bg-card);
+    transition: all 0.2s;
+  }
+  .module-chip:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+  .placement-chip { border-color: rgba(26,106,255,0.2); color: var(--text-mid); background: var(--bg-card); }
+  .highlight-chip { border-color: rgba(26,106,255,0.2); color: var(--text-mid); background: var(--bg-card); }
+  .fyp-chip {
+    border-color: var(--border); color: var(--text-mid);
+    background: var(--bg-card); border-radius: 8px;
+    padding: 6px 14px; width: 100%; max-width: 560px;
+    font-size: 11px; line-height: 1.5;
+  }
+  .edu-activities {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+    margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);
+  }
+  .edu-act-label { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.08em; margin-right: 4px; }
+  .edu-act-badge {
+    font-size: 12px; font-weight: 600;
+    padding: 4px 14px; border-radius: 100px;
+    background: var(--bg-raised); border: 1px solid var(--border);
+    color: var(--text-mid); transition: all 0.2s;
+  }
+  .edu-act-badge:hover { border-color: var(--blue); color: var(--blue); }
+  .edu-card-small .edu-degree { font-size: 17px; }
+  @media (max-width: 600px) {
+    .edu-card-left { width: 56px; }
+    .edu-meta-row { flex-direction: column; }
+    .edu-grade { align-self: flex-start; }
+  }
+
+  /* ══════════════════════════════════
+     COUNTER ANIMATION
+  ══════════════════════════════════ */
+  .counter { display: inline-block; }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- ═══════════ NAV ═══════════ -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <div class="dot"></div>
+      Max Matthew
+    </div>
+    <div class="nav-links">
+      <a href="#skills">Skills</a>
+      <a href="#experience">Experience</a>
+      <a href="#education">Education</a>
+      <a href="#projects">Projects</a>
+      <a href="#insights">Insights</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <button class="nav-cta">Download CV</button>
+  </div>
+</nav>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section class="hero" id="home">
+  <svg class="hero-circuit" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice">
+    <g stroke="#1A6AFF" stroke-width="0.8" fill="none" opacity="0.6">
+      <!-- Double wishbone schematic lines -->
+      <line x1="200" y1="350" x2="500" y2="280"/><line x1="200" y1="350" x2="500" y2="420"/>
+      <line x1="500" y1="280" x2="600" y2="320"/><line x1="500" y1="420" x2="600" y2="380"/>
+      <line x1="600" y1="320" x2="600" y2="380"/>
+      <circle cx="200" cy="350" r="6"/><circle cx="500" cy="280" r="4"/><circle cx="500" cy="420" r="4"/>
+      <circle cx="600" cy="350" r="8" stroke-dasharray="4,2"/>
+      <line x1="550" y1="350" x2="550" y2="220"/>
+      <line x1="545" y1="220" x2="555" y2="220"/>
+      <!-- Right side -->
+      <line x1="1000" y1="350" x2="700" y2="280"/><line x1="1000" y1="350" x2="700" y2="420"/>
+      <line x1="700" y1="280" x2="600" y2="320"/><line x1="700" y1="420" x2="600" y2="380"/>
+      <circle cx="1000" cy="350" r="6"/><circle cx="700" cy="280" r="4"/><circle cx="700" cy="420" r="4"/>
+      <line x1="650" y1="350" x2="650" y2="220"/>
+      <line x1="645" y1="220" x2="655" y2="220"/>
+      <!-- Ground -->
+      <line x1="100" y1="500" x2="1100" y2="500"/>
+      <line x1="400" y1="460" x2="400" y2="500"/><circle cx="400" cy="460" r="28"/>
+      <line x1="800" y1="460" x2="800" y2="500"/><circle cx="800" cy="460" r="28"/>
+      <!-- Dimension lines -->
+      <line x1="400" y1="540" x2="800" y2="540" stroke-dasharray="6,3"/>
+      <line x1="400" y1="535" x2="400" y2="545"/><line x1="800" y1="535" x2="800" y2="545"/>
+      <text x="600" y="558" text-anchor="middle" font-family="DM Mono" font-size="9" fill="#1A6AFF">TRACK WIDTH</text>
+    </g>
+  </svg>
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <div class="hero-tag">
+      <div class="pulse"></div>
+      AVAILABLE · JUNE 2027
+    </div>
+    <h1>
+      Vehicle <span class="accent">Dynamics</span><br>
+      Engineer
+    </h1>
+    <p class="hero-sub">
+      Bridging simulation, hardware & human performance —
+      from Automotive OEM test programmes to Formula Student podiums.
+    </p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <span class="num counter" data-target="90" data-suffix="%+">0%</span>
+        <span class="label">Data efficiency gain<br>Nissan NTCE</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num counter" data-target="40" data-suffix="%">0%</span>
+        <span class="label">Lap-time prediction<br>improvement</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num" style="font-size:22px">6<span style="font-size:14px;color:#8B949E">th</span></span>
+        <span class="label">International Finals<br>Greenpower F24+</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num counter" data-target="10" data-suffix="+">0</span>
+        <span class="label">Engineers led<br>across projects</span>
+      </div>
+    </div>
+    <div class="hero-ctas">
+      <a href="#experience" class="btn-primary">View My Work</a>
+      <a href="#contact" class="btn-secondary">Download CV</a>
+    </div>
+  </div>
+  <div class="scroll-indicator">
+    <div class="scroll-line"></div>
+    SCROLL
+  </div>
+</section>
+
+<!-- ═══════════ SKILLS ═══════════ -->
+<section id="skills">
+  <div class="section-inner">
+    <div class="section-label">SECTION 02</div>
+    <h2 class="section-title">Skills Taxonomy</h2>
+    <div class="skills-grid" style="grid-template-columns: repeat(2, 1fr);">
+      <div class="skill-category fade-up">
+        <div class="skill-cat-header">
+          <div class="skill-cat-icon icon-blue">⚙</div>
+          <span class="skill-cat-name" style="color:var(--blue)">SOFTWARE & SIMULATION</span>
+        </div>
+        <div class="skill-chips">
+          <span class="chip">SolidWorks</span>
+          <span class="chip">IPG CarMaker</span>
+          <span class="chip">CANape</span>
+          <span class="chip">CANalyzer</span>
+          <span class="chip">MATLAB</span>
+          <span class="chip">Simulink</span>
+          <span class="chip">AutoCAD</span>
+          <span class="chip">MS Project</span>
+          <span class="chip">ANSYS FEA</span>
+          <span class="chip">CFD</span>
+        </div>
+      </div>
+      <div class="skill-category fade-up" style="transition-delay:0.1s">
+        <div class="skill-cat-header">
+          <div class="skill-cat-icon icon-red">🔧</div>
+          <span class="skill-cat-name" style="color:var(--red)">TECHNICAL ENGINEERING</span>
+        </div>
+        <div class="skill-chips">
+          <span class="chip red">Vehicle Dynamics</span>
+          <span class="chip red">Suspension Design</span>
+          <span class="chip red">FEA</span>
+          <span class="chip red">Tyre Modelling</span>
+          <span class="chip red">CAN Bus / DAQ</span>
+          <span class="chip red">GD&T</span>
+          <span class="chip red">Aerodynamics</span>
+          <span class="chip red">Drivetrain</span>
+        </div>
+      </div>
+      <div class="skill-category fade-up" style="transition-delay:0.15s">
+        <div class="skill-cat-header">
+          <div class="skill-cat-icon icon-yellow">🧪</div>
+          <span class="skill-cat-name" style="color:#F0B400">PHYSICAL TESTING</span>
+        </div>
+        <div class="skill-chips">
+          <span class="chip yellow">4-Post Rig Testing</span>
+          <span class="chip yellow">Public Road Evaluation</span>
+          <span class="chip yellow">Test Track Evaluation</span>
+          <span class="chip yellow">OBD / CAN Data Logging</span>
+          <span class="chip yellow">Vector Smart Loggers</span>
+          <span class="chip yellow">Test Rig Design & Build</span>
+          <span class="chip yellow">Competitor Benchmarking</span>
+          <span class="chip yellow">Prototype Vehicle Testing</span>
+          <span class="chip yellow">NVH Assessment</span>
+          <span class="chip yellow">Steering Feel Evaluation</span>
+        </div>
+      </div>
+      <div class="skill-category fade-up" style="transition-delay:0.2s">
+        <div class="skill-cat-header">
+          <div class="skill-cat-icon icon-green">👥</div>
+          <span class="skill-cat-name" style="color:var(--green)">LEADERSHIP & MANAGEMENT</span>
+        </div>
+        <div class="skill-chips">
+          <span class="chip green">Project Management</span>
+          <span class="chip green">Sponsorship</span>
+          <span class="chip green">Team Building</span>
+          <span class="chip green">Budget Oversight</span>
+          <span class="chip green">Race Strategy</span>
+          <span class="chip green">Cross-cultural Comms</span>
+          <span class="chip green">Stakeholder Mgmt</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ EXPERIENCE ═══════════ -->
+<section id="experience">
+  <div class="section-inner">
+    <div class="section-label">SECTION 03</div>
+    <h2 class="section-title">Experience Hub</h2>
+    <div class="timeline">
+
+      <!-- Team Hare -->
+      <div class="timeline-entry fade-up">
+        <div class="timeline-dot"></div>
+        <div class="exp-card open" onclick="toggleCard(this)">
+          <div class="exp-card-header">
+            <div class="exp-card-meta">
+              <div class="exp-org">TEAM HARE CV · IMECHE FORMULA STUDENT</div>
+              <div class="exp-title">Team Principal & Head of Vehicle Dynamics</div>
+              <div class="exp-period">Oct 2025 – Present · Huddersfield, UK</div>
+            </div>
+            <div class="exp-arrow">▶</div>
+          </div>
+          <div class="exp-card-body">
+            <div class="exp-kpis">
+              <div class="exp-kpi"><span class="num">IMechE</span><span class="lbl">National Competition Target</span></div>
+              <div class="exp-kpi"><span class="num">TP</span><span class="lbl">Team Principal</span></div>
+              <div class="exp-kpi"><span class="num">Full</span><span class="lbl">Suspension System Ownership</span></div>
+              <div class="exp-kpi"><span class="num">R&D</span><span class="lbl">Hydraulic Suspension Project</span></div>
+            </div>
+            <div class="exp-stack">
+              <span class="stack-tag">SolidWorks</span>
+              <span class="stack-tag">Tyre Modelling</span>
+              <span class="stack-tag">Vehicle Dynamics Sim</span>
+              <span class="stack-tag">MS Project</span>
+            </div>
+            <ul class="exp-bullets">
+              <li>Leads the team as Team Principal — overseeing CV team progress, meetings, admin, and sponsor relations</li>
+              <li>Sole owner of complete suspension & steering design; developing tyre & vehicle models for performance optimisation</li>
+              <li>Running R&D project into fully mode-decoupled hydraulic suspension — novel active ride control for FS applications</li>
+              <li>Currently preparing vehicle for competition — build ongoing ahead of FSUK event</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nissan -->
+      <div class="timeline-entry fade-up" style="transition-delay:0.1s">
+        <div class="timeline-dot"></div>
+        <div class="exp-card" onclick="toggleCard(this)">
+          <div class="exp-card-header">
+            <div class="exp-card-meta">
+              <div class="exp-org">NISSAN TECHNICAL CENTRE EUROPE</div>
+              <div class="exp-title">Customer Oriented Engineering & Test Management</div>
+              <div class="exp-period">Jul 2024 – Aug 2025 · Cranfield, UK · Industrial Placement</div>
+            </div>
+            <div class="exp-arrow">▶</div>
+          </div>
+          <div class="exp-card-body">
+            <div class="exp-kpis">
+              <div class="exp-kpi"><span class="num">90%+</span><span class="lbl">Reduction in report compilation time</span></div>
+              <div class="exp-kpi"><span class="num">CAN Bus</span><span class="lbl">Live vehicle data acquisition</span></div>
+              <div class="exp-kpi"><span class="num">EU + JPN</span><span class="lbl">Cross-HQ coordination</span></div>
+              <div class="exp-kpi"><span class="num">Bespoke</span><span class="lbl">Testing rigs designed</span></div>
+            </div>
+            <div class="exp-stack">
+              <span class="stack-tag">CANape</span>
+              <span class="stack-tag">CANalyzer</span>
+              <span class="stack-tag">Vector Smart Loggers</span>
+              <span class="stack-tag">MATLAB</span>
+              <span class="stack-tag">Excel VBA</span>
+              <span class="stack-tag">MS Project</span>
+            </div>
+            <ul class="exp-bullets">
+              <li>Built automated MATLAB/Excel pipelines reducing data compilation time by 90% — a multi-day manual process to near-instant</li>
+              <li>Designed bespoke testing rigs converting qualitative customer feedback into quantitative data: steering feel → torque gradient measurements</li>
+              <li>Conducted public road & test track evaluations; competitor benchmarking to identify customer expectation gaps</li>
+              <li>Coordinated prototype tests across European departments; bridged communication between EU teams and Japanese HQ</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- HGP Racing -->
+      <div class="timeline-entry fade-up" style="transition-delay:0.2s">
+        <div class="timeline-dot"></div>
+        <div class="exp-card" onclick="toggleCard(this)">
+          <div class="exp-card-header">
+            <div class="exp-card-meta">
+              <div class="exp-org">HGP RACING · GREENPOWER F24+</div>
+              <div class="exp-title">Team Principal & Performance Engineer</div>
+              <div class="exp-period">Dec 2022 – Sep 2023 · Huddersfield, UK</div>
+            </div>
+            <div class="exp-arrow">▶</div>
+          </div>
+          <div class="exp-card-body">
+            <div class="exp-kpis">
+              <div class="exp-kpi"><span class="num">4→10+</span><span class="lbl">Team size grown</span></div>
+              <div class="exp-kpi"><span class="num">40%</span><span class="lbl">Lap-time prediction accuracy ↑</span></div>
+              <div class="exp-kpi"><span class="num">6th</span><span class="lbl">International Finals</span></div>
+              <div class="exp-kpi"><span class="num">3rd</span><span class="lbl">In Class, UK</span></div>
+            </div>
+            <div class="exp-stack">
+              <span class="stack-tag">MATLAB Race Sim</span>
+              <span class="stack-tag">Low-Drag Aero Design</span>
+              <span class="stack-tag">Drivetrain Optimisation</span>
+            </div>
+            <ul class="exp-bullets">
+              <li>Promoted from Performance Engineer to Team Principal in 3 months based on technical output and leadership potential</li>
+              <li>Built MATLAB race strategy simulator improving lap-time prediction accuracy by 40%</li>
+              <li>Scaled team 2.5× to 10+ members; secured sponsorship; directed race strategy to 6th place International Finals result</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Consolux -->
+      <div class="timeline-entry fade-up" style="transition-delay:0.3s">
+        <div class="timeline-dot"></div>
+        <div class="exp-card" onclick="toggleCard(this)">
+          <div class="exp-card-header">
+            <div class="exp-card-meta">
+              <div class="exp-org">CONSOLUX M&E CONSULTING LTD</div>
+              <div class="exp-title">Computer Aided Design Engineer</div>
+              <div class="exp-period">Feb 2022 – Jul 2022 · Liverpool, UK · Full-time</div>
+            </div>
+            <div class="exp-arrow">▶</div>
+          </div>
+          <div class="exp-card-body">
+            <div class="exp-kpis">
+              <div class="exp-kpi"><span class="num">M&E</span><span class="lbl">Mechanical & Electrical Systems</span></div>
+              <div class="exp-kpi"><span class="num">Multi</span><span class="lbl">Concurrent projects managed</span></div>
+              <div class="exp-kpi"><span class="num">QC</span><span class="lbl">Drawing revision management</span></div>
+              <div class="exp-kpi"><span class="num">6 mo</span><span class="lbl">First industry experience</span></div>
+            </div>
+            <div class="exp-stack">
+              <span class="stack-tag">AutoCAD</span>
+              <span class="stack-tag">Technical Drawing</span>
+              <span class="stack-tag">Document Control</span>
+            </div>
+            <ul class="exp-bullets">
+              <li>Produced detailed AutoCAD drawings for M&E building systems, meeting strict client deadlines and specification requirements</li>
+              <li>Managed drawing revisions and project documentation to high quality control standards in a professional office environment</li>
+              <li>Collaborated across design, engineering, and client teams — developing interdepartmental communication and time management skills</li>
+              <li>Foundational industry role combining technical CAD proficiency with core professional workplace skills</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ EDUCATION ═══════════ -->
+<section id="education">
+  <div class="section-inner">
+    <div class="section-label">SECTION 04</div>
+    <h2 class="section-title">Education</h2>
+    <div class="edu-grid">
+
+      <!-- MSc by Research -->
+      <div class="edu-card edu-card-small fade-up">
+        <div class="edu-card-left">
+          <div class="edu-logo" style="background: rgba(63,185,80,0.1); color: var(--green); font-size:10px; letter-spacing:-0.03em">MSc</div>
+        </div>
+        <div class="edu-card-right">
+          <div class="edu-meta-row">
+            <div>
+              <div class="edu-inst" style="color: var(--green)">THE UNIVERSITY OF HUDDERSFIELD</div>
+              <div class="edu-degree">MSc by Research</div>
+              <div class="edu-period">Oct 2026 – May 2027 · Fully Funded by University</div>
+            </div>
+            <div class="edu-grade" style="background: rgba(63,185,80,0.08); border-color: rgba(63,185,80,0.2);">
+              <span class="grade-num" style="color: var(--green); font-size:18px">R&D</span>
+              <span class="grade-lbl">Funded</span>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; margin-top:4px; padding:14px 16px; border-radius:8px; background: rgba(63,185,80,0.06); border: 1px dashed rgba(63,185,80,0.2);">
+            <span style="font-size:20px">🔒</span>
+            <div>
+              <div style="font-size:13px; font-weight:600; color: var(--text-mid);">Research topic to be revealed</div>
+              <div style="font-family: var(--font-mono); font-size:11px; color: var(--text-dim); margin-top:3px;">Full details will be published here upon confirmation — check back soon.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- University of Huddersfield -->
+      <div class="edu-card fade-up" style="transition-delay:0.05s">
+        <div class="edu-card-left">
+          <div class="edu-logo">UoH</div>
+        </div>
+        <div class="edu-card-right">
+          <div class="edu-meta-row">
+            <div>
+              <div class="edu-inst">THE UNIVERSITY OF HUDDERSFIELD</div>
+              <div class="edu-degree">BEng Automotive & Motorsport Engineering</div>
+              <div class="edu-period">Sep 2022 – May 2026 · Predicted 1st Class Honours</div>
+            </div>
+            <div class="edu-grade">
+              <span class="grade-num">1st</span>
+              <span class="grade-lbl">Predicted</span>
+            </div>
+          </div>
+          <div class="edu-modules-wrap">
+            <div class="edu-year-block fade-up" style="transition-delay:0.05s">
+              <div class="edu-year-label">Year 1 · 1st Class</div>
+              <div class="module-chips">
+                <span class="module-chip">Engineering Communication & Materials</span>
+                <span class="module-chip">Mathematics</span>
+                <span class="module-chip">Manufacturing, Measurement & Diagnostics</span>
+                <span class="module-chip">Engineering Science</span>
+                <span class="module-chip">Mechatronics</span>
+                <span class="module-chip">Professional Development</span>
+              </div>
+            </div>
+            <div class="edu-year-block fade-up" style="transition-delay:0.1s">
+              <div class="edu-year-label">Year 2 · 1st Class</div>
+              <div class="module-chips">
+                <span class="module-chip">Dynamic Systems</span>
+                <span class="module-chip">Analysis of Materials</span>
+                <span class="module-chip">Engineering Design</span>
+                <span class="module-chip">Thermofluids</span>
+                <span class="module-chip">Manufacturing & Production Systems</span>
+                <span class="module-chip">Automotive Production Systems</span>
+              </div>
+            </div>
+            <div class="edu-year-block fade-up" style="transition-delay:0.15s">
+              <div class="edu-year-label">Year 3 · Industrial Placement</div>
+              <div class="module-chips">
+                <span class="module-chip placement-chip">Nissan Technical Centre Europe · Vehicle Evaluation & Test Management</span>
+              </div>
+            </div>
+            <div class="edu-year-block fade-up" style="transition-delay:0.2s">
+              <div class="edu-year-label">Year 4 · Predicted 1st Class</div>
+              <div class="module-chips">
+                <span class="module-chip highlight-chip">Aerodynamics & CFD</span>
+                <span class="module-chip highlight-chip">Vehicle Handling & Performance Prediction</span>
+                <span class="module-chip highlight-chip">Design Analysis</span>
+                <span class="module-chip">Project Quality & Production Management</span>
+                <span class="module-chip fyp-chip">FYP: Vehicle Dynamics Optimisation & Suspension Design — Quad-Motor EV Formula Student</span>
+              </div>
+            </div>
+          </div>
+          <div class="edu-activities">
+            <span class="edu-act-label">Activities & Societies</span>
+            <span class="edu-act-badge">🏎 President — Huddersfield Motorsport</span>
+            <span class="edu-act-badge">🏁 Team Principal — HGP Racing</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cardinal Newman -->
+      <div class="edu-card edu-card-small fade-up" style="transition-delay:0.1s">
+        <div class="edu-card-left">
+          <div class="edu-logo" style="background: var(--red-dim); color: var(--red); font-size:11px">CNC</div>
+        </div>
+        <div class="edu-card-right">
+          <div class="edu-meta-row">
+            <div>
+              <div class="edu-inst">CARDINAL NEWMAN COLLEGE, PRESTON</div>
+              <div class="edu-degree">A-Levels: Physics · Chemistry · Mathematics</div>
+              <div class="edu-period">Sep 2019 – Apr 2021 · Grades: BCC</div>
+            </div>
+          </div>
+          <div class="module-chips" style="margin-top:16px">
+            <span class="module-chip">Physics</span>
+            <span class="module-chip">Chemistry</span>
+            <span class="module-chip">Mathematics</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PROJECTS ═══════════ -->
+<section id="projects">
+  <div class="section-inner">
+    <div class="section-label">SECTION 05</div>
+    <h2 class="section-title">Project Deep-Dives</h2>
+    <div class="projects-grid">
+
+      <div class="project-card fade-up">
+        <div class="project-cover cover-1">
+          <div class="cover-schematic">⌗</div>
+          <span class="project-tag-id">P01</span>
+        </div>
+        <div class="project-body">
+          <div class="project-tags">
+            <span class="project-tag">Excel · VBA</span>
+            <span class="project-tag">Vehicle Dynamics</span>
+            <span class="project-tag">Team Hare</span>
+          </div>
+          <div class="project-title">Double-Wishbone Suspension Geometry Calculator</div>
+          <div class="project-desc">Real-time interactive suspension geometry calculator. Computes instant centres, roll centre migration, KPI, scrub radius, camber change, and tyre deflection from user-defined hardpoints.</div>
+        </div>
+        <div class="project-footer">
+          <span class="project-result">✓ Deployed for IMechE Competition</span>
+          <a href="#" class="project-link">Case Study Coming Soon</a>
+        </div>
+      </div>
+
+      <div class="project-card fade-up" style="transition-delay:0.08s">
+        <div class="project-cover cover-4">
+          <div class="cover-schematic">📊</div>
+          <span class="project-tag-id">P02</span>
+        </div>
+        <div class="project-body">
+          <div class="project-tags">
+            <span class="project-tag">MATLAB</span>
+            <span class="project-tag">Data Vis</span>
+            <span class="project-tag">Team Hare</span>
+          </div>
+          <div class="project-title">Racing Data Visualiser & Lap Compare Tool</div>
+          <div class="project-desc">MATLAB tool collating FS vehicle test data. Visualises engine and dynamic data channels, overlays lap comparisons, and surfaces performance trends for development decisions.</div>
+        </div>
+        <div class="project-footer">
+          <span class="project-result">✓ Live in team development</span>
+          <a href="#" class="project-link">Case Study Coming Soon</a>
+        </div>
+      </div>
+
+      <div class="project-card fade-up" style="transition-delay:0.16s; border-style: dashed; border-color: var(--border);">
+        <div class="project-cover" style="background: var(--bg); border-bottom: 1px solid var(--border);">
+          <div style="text-align:center; color: var(--text-dim);">
+            <div style="font-size:32px; margin-bottom:8px;">🔬</div>
+            <div style="font-family:var(--font-mono); font-size:11px; letter-spacing:0.1em;">IN PROGRESS</div>
+          </div>
+        </div>
+        <div class="project-body">
+          <div class="project-tags">
+            <span class="project-tag">R&D</span>
+            <span class="project-tag">Hydraulics</span>
+            <span class="project-tag">Active Suspension</span>
+          </div>
+          <div class="project-title">Mode-Decoupled Hydraulic Suspension</div>
+          <div class="project-desc">R&D project exploring a fully mode-decoupled hydraulic suspension system. Novel approach to independent heave/roll/pitch control for Formula Student application.</div>
+        </div>
+        <div class="project-footer">
+          <span class="project-result" style="color:var(--text-dim)">⏳ Ongoing R&D</span>
+          <a href="#insights" class="project-link">Follow Updates →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ INSIGHTS ═══════════ -->
+<section id="insights">
+  <div class="section-inner">
+    <div class="section-label">SECTION 06</div>
+    <h2 class="section-title">Insights</h2>
+    <div class="blog-grid">
+      <div class="blog-card fade-up">
+        <span class="blog-type type-technical">TECHNICAL</span>
+        <div class="blog-title">How I Built a Real-Time Suspension Geometry Calculator in Excel</div>
+        <div class="blog-excerpt">Walking through the architecture of a roll-centre migration visualiser — from hardpoint matrices to instant centre computation, without a line of Python.</div>
+        <div class="blog-meta"><span>8 min read</span><span>Coming soon</span></div>
+      </div>
+      <div class="blog-card fade-up" style="transition-delay:0.1s">
+        <span class="blog-type type-wip">WORK IN PROGRESS</span>
+        <div class="blog-title">Hydraulic Suspension R&D: Month 1 — The Case for Mode Decoupling</div>
+        <div class="blog-excerpt">Why conventional passive suspension couples heave, roll, and pitch — and the theoretical basis for breaking those dependencies with interconnected hydraulics.</div>
+        <div class="blog-meta"><span>6 min read</span><span>Coming soon</span></div>
+      </div>
+      <div class="blog-card fade-up" style="transition-delay:0.2s">
+        <span class="blog-type type-opinion">LEADERSHIP</span>
+        <div class="blog-title">What Nissan Taught Me About Turning "Feels Vague" into Engineering Data</div>
+        <div class="blog-excerpt">The methodology behind converting qualitative driver feedback into statistically repeatable quantitative metrics — and why this skill is undervalued in engineering.</div>
+        <div class="blog-meta"><span>5 min read</span><span>Coming soon</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ CONTACT ═══════════ -->
+<section id="contact">
+  <div class="section-inner">
+    <div class="section-label">SECTION 07</div>
+    <h2 class="section-title">Get In Touch</h2>
+    <div class="contact-simple fade-up">
+      <p class="contact-intro">Available for full-time roles from June 2027, and open to freelance projects and research collaborations year-round.</p>
+      <div class="contact-buttons">
+        <a href="#" class="download-btn">
+          <div class="download-icon dl-cv">📄</div>
+          <div class="download-info">
+            <div class="name">Download CV (PDF)</div>
+            <div class="desc">Updated March 2026 · 1 page</div>
+          </div>
+        </a>
+        <a href="mailto:max@maxmatthew.co.uk" class="download-btn">
+          <div class="download-icon" style="background: rgba(240,180,0,0.1); font-size:18px">✉</div>
+          <div class="download-info">
+            <div class="name">Send an Email</div>
+            <div class="desc">max@maxmatthew.co.uk</div>
+          </div>
+        </a>
+        <a href="#" class="download-btn">
+          <div class="download-icon dl-li" style="font-size:18px">in</div>
+          <div class="download-info">
+            <div class="name">LinkedIn Profile</div>
+            <div class="desc">Full work history & endorsements</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer>
+  <div class="footer-inner">
+    <span class="footer-left">© 2026 · Max Matthew · Huddersfield, UK</span>
+    <div class="footer-links">
+      <a href="#">LinkedIn</a>
+      <a href="#">Download CV</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Toggle timeline cards
+function toggleCard(card) {
+  card.classList.toggle('open');
+}
+
+// Intersection Observer for fade-up animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+// Counter animation
+function animateCounter(el) {
+  const target = parseInt(el.dataset.target);
+  const suffix = el.dataset.suffix || '';
+  const duration = 1800;
+  const start = performance.now();
+  function step(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(target * eased) + suffix;
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+const counterObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      animateCounter(entry.target);
+      counterObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.5 });
+
+document.querySelectorAll('.counter').forEach(el => counterObserver.observe(el));
+</script>
+
+</body>
+</html>
