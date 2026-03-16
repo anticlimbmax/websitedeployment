@@ -124,8 +124,17 @@
   .fs-chip .fc-val { font-size: 13px; font-weight: 600; color: var(--text); }
 
   .entry-img { margin: 24px 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
-  .entry-img img { width: 100%; display: block; }
+  .entry-img img { width: 100%; display: block; cursor: zoom-in; transition: opacity 0.15s; }
+  .entry-img img:hover { opacity: 0.88; }
   .img-caption { padding: 10px 16px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.04em; }
+
+  .lightbox { display: none; position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,0.92); align-items: center; justify-content: center; padding: 24px; cursor: zoom-out; }
+  .lightbox.open { display: flex; }
+  .lightbox-inner { position: relative; max-width: min(90vw, 1200px); max-height: 90vh; }
+  .lightbox-inner img { display: block; max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 8px; border: 1px solid var(--border); }
+  .lightbox-caption { margin-top: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.04em; text-align: center; }
+  .lightbox-close { position: absolute; top: -14px; right: -14px; width: 28px; height: 28px; border-radius: 50%; background: var(--bg-raised); border: 1px solid var(--border); color: var(--text-mid); font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; line-height: 1; }
+  .lightbox-close:hover { border-color: var(--blue); color: var(--blue); }
 
   .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
   .entry-tag { font-family: var(--font-mono); font-size: 11px; padding: 4px 12px; border-radius: 100px; border: 1px solid var(--border); color: var(--text-dim); transition: all 0.2s; }
@@ -619,6 +628,14 @@
   </div>
 </footer>
 
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-inner">
+    <div class="lightbox-close" id="lightbox-close">&#x2715;</div>
+    <img id="lightbox-img" src="" alt="" />
+    <div class="lightbox-caption" id="lightbox-caption"></div>
+  </div>
+</div>
+
 <script>
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
@@ -637,6 +654,31 @@
     });
   }, { threshold: 0.3, rootMargin: '-60px 0px -60% 0px' });
   sections.forEach(s => tocObserver.observe(s));
+
+  const lightbox = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lightbox-img');
+  const lbCaption = document.getElementById('lightbox-caption');
+  const lbClose = document.getElementById('lightbox-close');
+
+  document.querySelectorAll('.entry-img img').forEach(img => {
+    img.addEventListener('click', () => {
+      lbImg.src = img.src;
+      lbImg.alt = img.alt;
+      const caption = img.closest('.entry-img').querySelector('.img-caption');
+      lbCaption.textContent = caption ? caption.textContent : '';
+      lightbox.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  function closeLightbox() {
+    lightbox.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  lbClose.addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 </script>
 </body>
 </html>
