@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mode-Decoupled Suspension — Max Matthew</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Playfair+Display:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0D1117;
+    --bg-card: #161B22;
+    --bg-raised: #1C2333;
+    --blue: #1A6AFF;
+    --blue-dim: rgba(26,106,255,0.12);
+    --blue-glow: rgba(26,106,255,0.35);
+    --red: #E63946;
+    --red-dim: rgba(230,57,70,0.12);
+    --green: #3FB950;
+    --amber: #F0B400;
+    --text: #E6EDF3;
+    --text-mid: #8B949E;
+    --text-dim: #484F58;
+    --border: #21262D;
+    --border-hover: #30363D;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --font-serif: 'Playfair Display', serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-display); line-height: 1.6; overflow-x: hidden; }
+
+  .grid-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: linear-gradient(rgba(26,106,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(26,106,255,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 60px; background: rgba(13,17,23,0.85); backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 40px;
+  }
+  .nav-inner { max-width: 1200px; width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+  .nav-logo { font-size: 15px; font-weight: 700; letter-spacing: 0.08em; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 10px; }
+  .nav-logo .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
+  .nav-breadcrumb { display: flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); }
+  .nav-breadcrumb .current { color: var(--blue); }
+  .nav-back { background: transparent; color: var(--text-mid); padding: 7px 16px; border-radius: 6px; font-family: var(--font-display); font-size: 13px; font-weight: 600; transition: all 0.2s; text-decoration: none; border: 1px solid var(--border); display: flex; align-items: center; gap: 7px; }
+  .nav-back:hover { border-color: var(--blue); color: var(--blue); }
+
+  .article-hero { padding: 120px 40px 60px; position: relative; z-index: 1; border-bottom: 1px solid var(--border); }
+  .article-hero-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 440px; gap: 60px; align-items: center; }
+  .article-hero-text {}
+  .hero-render {
+    position: relative; border-radius: 16px; overflow: hidden;
+    border: 1px solid var(--border); background: var(--bg-card);
+    aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center;
+  }
+  .hero-render img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 16px; }
+  .hero-render-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 40px 32px; text-align: center; width: 100%; }
+  .hero-render-placeholder .rp-icon { width: 56px; height: 56px; border-radius: 12px; background: var(--bg-raised); border: 1px dashed var(--border-hover); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .hero-render-placeholder .rp-label { font-family: var(--font-mono); font-size: 11px; color: var(--blue); letter-spacing: 0.12em; text-transform: uppercase; }
+  .hero-render-placeholder .rp-desc { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); line-height: 1.5; max-width: 240px; }
+  .hero-render-caption { position: absolute; bottom: 0; left: 0; right: 0; padding: 8px 14px; background: rgba(13,17,23,0.8); border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.06em; display: flex; align-items: center; justify-content: space-between; }
+  .hero-render-caption .rc-tag { color: var(--blue); }
+  .article-hero-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .article-tag { display: inline-flex; align-items: center; gap: 8px; background: var(--blue-dim); border: 1px solid rgba(26,106,255,0.3); padding: 5px 14px; border-radius: 100px; font-family: var(--font-mono); font-size: 11px; color: var(--blue); letter-spacing: 0.1em; }
+  .article-tag .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.8); } }
+  .article-tag-amber { background: rgba(240,180,0,0.1); border-color: rgba(240,180,0,0.25); color: var(--amber); }
+  .article-tag-green { background: rgba(63,185,80,0.08); border-color: rgba(63,185,80,0.2); color: var(--green); }
+  .article-hero h1 { font-family: var(--font-serif); font-size: clamp(32px, 5vw, 58px); font-weight: 400; line-height: 1.15; letter-spacing: -0.01em; margin-bottom: 20px; animation: fadeUp 0.6s ease both; }
+  .article-hero h1 .accent { color: var(--blue); }
+  .article-hero-sub { font-size: 16px; color: var(--text-mid); line-height: 1.75; font-weight: 400; max-width: 700px; margin-bottom: 36px; animation: fadeUp 0.6s 0.1s ease both; }
+  .article-hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; max-width: 700px; animation: fadeUp 0.6s 0.2s ease both; }
+  .article-stat { background: var(--bg-card); padding: 16px 14px; text-align: center; transition: background 0.2s; }
+  .article-stat:hover { background: var(--bg-raised); }
+  .article-stat .num { font-size: 20px; font-weight: 800; color: var(--blue); display: block; }
+  .article-stat .label { font-size: 10px; color: var(--text-mid); margin-top: 3px; font-family: var(--font-mono); letter-spacing: 0.04em; line-height: 1.4; }
+
+  .article-layout { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 220px 1fr; gap: 0; padding: 0 40px; position: relative; z-index: 1; }
+  .article-toc { padding: 48px 32px 48px 0; border-right: 1px solid var(--border); }
+  .toc-sticky { position: sticky; top: 80px; }
+  .toc-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 16px; }
+  .toc-list { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+  .toc-list a { display: block; text-decoration: none; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); padding: 6px 10px; border-radius: 6px; transition: all 0.2s; letter-spacing: 0.03em; line-height: 1.4; border-left: 2px solid transparent; }
+  .toc-list a:hover, .toc-list a.active { color: var(--blue); background: var(--blue-dim); border-left-color: var(--blue); }
+  .toc-divider { height: 1px; background: var(--border); margin: 12px 0; }
+  .toc-entry-link { display: block; font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); text-decoration: none; padding: 4px 10px 4px 18px; border-radius: 4px; transition: all 0.2s; position: relative; letter-spacing: 0.02em; margin-bottom: 2px; }
+  .toc-entry-link::before { content: '·'; position: absolute; left: 9px; color: var(--text-dim); }
+  .toc-entry-link:hover { color: var(--blue); }
+
+  .article-body { padding: 48px 0 48px 48px; }
+  .entry-block { padding: 48px 0; border-bottom: 1px solid var(--border); }
+  .entry-block:last-child { border-bottom: none; }
+  .entry-header { display: flex; align-items: flex-start; gap: 24px; margin-bottom: 32px; }
+  .entry-num-large { font-family: var(--font-serif); font-size: 64px; font-weight: 400; color: var(--text-dim); line-height: 1; flex-shrink: 0; width: 70px; text-align: right; padding-top: 4px; }
+  .entry-period-tag { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+  .entry-title-large { font-family: var(--font-serif); font-size: clamp(20px, 2.5vw, 30px); font-weight: 500; line-height: 1.25; color: var(--text); }
+  .entry-divider { width: 48px; height: 2px; background: var(--blue); margin: 0 0 32px 94px; }
+
+  .prose { margin-left: 94px; }
+  .prose-section { margin-bottom: 36px; }
+  .prose-section h3 { font-family: var(--font-serif); font-size: 18px; font-weight: 500; color: var(--text); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .prose-section p { font-size: 15px; color: var(--text-mid); line-height: 1.8; margin-bottom: 14px; font-weight: 400; }
+  .prose-section p:last-child { margin-bottom: 0; }
+
+  .pullquote { border-left: 2px solid var(--blue); margin: 24px 0; padding: 10px 0 10px 20px; background: var(--blue-dim); border-radius: 0 8px 8px 0; }
+  .pullquote p { font-family: var(--font-serif) !important; font-style: italic; font-size: 16px !important; color: var(--text) !important; line-height: 1.6 !important; margin: 0 0 6px !important; }
+  .pullquote cite { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); font-style: normal; letter-spacing: 0.04em; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 24px 0; }
+  .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; transition: border-color 0.2s; }
+  .stat-card:hover { border-color: var(--blue); }
+  .stat-card .s-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+  .stat-card .s-val { font-size: 16px; font-weight: 800; color: var(--blue); }
+
+  .mode-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 20px 0; }
+  .mode-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; transition: border-color 0.2s; }
+  .mode-card:hover { border-color: var(--border-hover); }
+  .mode-axis { font-family: var(--font-mono); font-size: 10px; color: var(--blue); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
+  .mode-name { font-size: 15px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+  .mode-desc { font-size: 12px; color: var(--text-mid); line-height: 1.55; }
+
+  .fs-chip-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; }
+  @media (max-width: 800px) { .fs-chip-row { grid-template-columns: 1fr !important; } }
+  .fs-chip { background: var(--bg-raised); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .fs-chip .fc-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 5px; }
+  .fs-chip .fc-val { font-size: 13px; font-weight: 600; color: var(--text); }
+
+  .img-placeholder { background: var(--bg-card); border: 1px dashed var(--border-hover); border-radius: 10px; margin: 24px 0; overflow: hidden; }
+  .img-placeholder-inner { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 40px 24px; text-align: center; }
+  .img-placeholder-icon { width: 48px; height: 48px; border-radius: 10px; background: var(--bg-raised); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .img-placeholder-label { font-family: var(--font-mono); font-size: 11px; color: var(--blue); letter-spacing: 0.1em; text-transform: uppercase; }
+  .img-placeholder-desc { font-size: 12px; color: var(--text-dim); font-family: var(--font-mono); max-width: 340px; line-height: 1.5; }
+  .img-caption { padding: 10px 16px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.04em; }
+  /* To add a real image: replace the img-placeholder-inner div with <img class="img-real" src="path/to/img.jpg" alt="description"> */
+  .img-real { width: 100%; display: block; border-radius: 10px 10px 0 0; object-fit: cover; }
+
+  .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+  .entry-tag { font-family: var(--font-mono); font-size: 11px; padding: 4px 12px; border-radius: 100px; border: 1px solid var(--border); color: var(--text-dim); transition: all 0.2s; }
+  .entry-tag:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+  .entry-tag.active { background: var(--blue-dim); border-color: rgba(26,106,255,0.3); color: var(--blue); }
+
+  .review-grid { display: flex; flex-direction: column; gap: 10px; margin: 20px 0; }
+  .review-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; display: grid; grid-template-columns: 130px 1fr; gap: 16px; align-items: start; transition: border-color 0.2s; }
+  .review-item:hover { border-color: var(--border-hover); }
+  .review-item-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.4; }
+  .review-item-verdict { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; margin-top: 5px; padding: 2px 8px; border-radius: 4px; display: inline-block; }
+  .verdict-no { background: var(--red-dim); color: var(--red); }
+  .verdict-future { background: rgba(240,180,0,0.1); color: var(--amber); }
+  .verdict-yes { background: rgba(63,185,80,0.1); color: var(--green); }
+  .review-item-desc { font-size: 13px; color: var(--text-mid); line-height: 1.6; }
+
+  .sim-stack { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 20px 0; }
+  .sim-layer { display: grid; grid-template-columns: 32px 160px 1fr; gap: 16px; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); transition: background 0.2s; }
+  .sim-layer:last-child { border-bottom: none; }
+  .sim-layer:hover { background: var(--bg-raised); }
+  .sim-layer-num { font-family: var(--font-mono); font-size: 11px; color: var(--blue); font-weight: 500; }
+  .sim-layer-name { font-size: 13px; font-weight: 700; color: var(--text); }
+  .sim-layer-desc { font-size: 12px; color: var(--text-mid); line-height: 1.5; }
+
+  .progress-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+  .progress-title { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px; }
+  .progress-items { display: flex; flex-direction: column; gap: 10px; }
+  .progress-item { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-mid); }
+  .p-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+  .p-done { background: rgba(63,185,80,0.15); color: var(--green); }
+  .p-wip { background: rgba(240,180,0,0.12); color: var(--amber); }
+  .p-todo { background: var(--bg-raised); color: var(--text-dim); border: 1px solid var(--border); }
+
+  footer { border-top: 1px solid var(--border); padding: 32px 40px; background: var(--bg); position: relative; z-index: 1; }
+  .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+  .footer-left { font-size: 13px; color: var(--text-dim); font-family: var(--font-mono); }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a { font-size: 12px; color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--blue); }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-up { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+  .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 960px) {
+    .article-layout { grid-template-columns: 1fr; padding: 0 20px; }
+    .article-toc { display: none; }
+    .article-body { padding: 32px 0; }
+    .prose { margin-left: 0; }
+    .entry-divider { margin-left: 0; }
+    .entry-num-large { font-size: 40px; width: 44px; }
+    .mode-grid, .stat-row { grid-template-columns: 1fr 1fr; }
+    .article-hero-inner { grid-template-columns: 1fr; gap: 36px; }
+    .hero-render { max-width: 500px; }
+    .article-hero-stats { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    nav { padding: 0 16px; }
+    .nav-breadcrumb { display: none; }
+    .article-hero { padding: 90px 20px 40px; }
+    .review-item { grid-template-columns: 1fr; gap: 8px; }
+    .sim-layer { grid-template-columns: 24px 1fr; }
+    .sim-layer-desc { display: none; }
+    .mode-grid, .stat-row { grid-template-columns: 1fr; }
+    .hero-render { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo"><div class="dot"></div>Max Matthew</a>
+    <div class="nav-breadcrumb">
+      <span>Projects</span>
+      <span style="color:var(--text-dim)">/</span>
+      <span class="current">Mode-Decoupled Suspension</span>
+    </div>
+    <a href="index.html#projects" class="nav-back">&#8592; Back</a>
+  </div>
+</nav>
+
+<section class="article-hero">
+  <div class="article-hero-inner">
+    <div class="article-hero-text">
+      <div class="article-hero-meta">
+        <div class="article-tag"><div class="pulse"></div>ONGOING R&D</div>
+        <div class="article-tag article-tag-amber">TEAM HARE · FSUK 2026</div>
+        <div class="article-tag article-tag-green">FYP · 1ST CLASS TARGET</div>
+      </div>
+      <h1>Design &amp; Analysis of a<br><span class="accent">Mode-Decoupled</span><br>Suspension System</h1>
+      <p class="article-hero-sub">A week-by-week engineering diary covering the full lifecycle of a Formula Student suspension system — from first principles research through simulation, component design, manufacture, and physical validation.</p>
+      <div class="article-hero-stats">
+        <div class="article-stat"><span class="num">80</span><span class="label">Machined<br>components</span></div>
+        <div class="article-stat"><span class="num">48</span><span class="label">Assemblies<br>tracked</span></div>
+        <div class="article-stat"><span class="num">37</span><span class="label">Drawings<br>approved</span></div>
+        <div class="article-stat"><span class="num">4+</span><span class="label">Simulation<br>layers</span></div>
+      </div>
+    </div>
+    <div class="hero-render">
+      <!-- To add your render: replace the hero-render-placeholder div below with:
+           <img src="your-render.png" alt="Suspension system render" />
+           The image should have a transparent or dark background for best results. -->
+      <div class="hero-render-placeholder">
+        <div class="rp-icon">⌗</div>
+        <div class="rp-label">System Render</div>
+        <div class="rp-desc">Replace with SolidWorks render — transparent background recommended</div>
+      </div>
+      <div class="hero-render-caption">
+        <span>Full suspension assembly · 2026</span>
+        <span class="rc-tag">TEAM HARE CV</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="article-layout">
+  <aside class="article-toc">
+    <div class="toc-sticky">
+      <div class="toc-label">Contents</div>
+      <ul class="toc-list">
+        <li><a href="#entry-01">01 — Kickoff</a></li>
+        <li><a href="#entry-02">02 — Simulation Stack</a></li>
+        <li><a href="#entry-03">03 — Geometry</a></li>
+        <li><a href="#entry-04">04 — ARB Spec</a></li>
+        <li><a href="#entry-05">05 — Part Design</a></li>
+        <li><a href="#entry-06">06 — Manufacture Prep</a></li>
+        <li><a href="#entry-07">07 — Design Freeze</a></li>
+        <li><a href="#entry-08">08 — Into Production</a></li>
+      </ul>
+      <div class="toc-divider"></div>
+      <div class="toc-label">Resources</div>
+      <a href="#" class="toc-entry-link">Adams Car Model</a>
+      <a href="#" class="toc-entry-link">Geometry Calculator</a>
+      <a href="#" class="toc-entry-link">MATLAB Tools</a>
+    </div>
+  </aside>
+
+  <main class="article-body">
+
+    <!-- ═══ ENTRY 01 ═══ -->
+    <div class="entry-block fade-up" id="entry-01">
+      <div class="entry-header">
+        <div class="entry-num-large">01</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">Project Kickoff &nbsp;·&nbsp; September 2025</div>
+          <div class="entry-title-large">Formula Student, First Principles, &amp; Why Any of This Matters</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+
+        <div class="prose-section">
+          <h3>What is Formula Student?</h3>
+          <p>Formula Student is an international engineering design competition run by the Institution of Mechanical Engineers, where university teams design, build, and race a single-seat open-wheel racing car from scratch. Teams compete across a series of static and dynamic events that together test not just the car, but the engineering rigour behind every decision that shapes it.</p>
+          <div class="fs-chip-row">
+            <div class="fs-chip"><div class="fc-label">Static events</div><div class="fc-val">Design, cost &amp; business presentation</div></div>
+            <div class="fs-chip"><div class="fc-label">Dynamic events</div><div class="fc-val">Acceleration, skidpan, autocross, endurance</div></div>
+            <div class="fs-chip"><div class="fc-label">Total available</div><div class="fc-val">1000 points across all disciplines</div></div>
+          </div>
+          <p>The points split matters more than most people realise. Of the 1000 total, 325 points are awarded across the static events alone - design is worth 150, cost 100, and business presentation 75. The dynamic events split the remaining 675 between acceleration (75), skidpan (75), autocross (100), and the flagship endurance and efficiency event (425 combined). What this means in practice is that a team that builds a genuinely fast car but cannot explain it to the design judges is leaving nearly a third of the available points on the table before a wheel has turned.</p>
+          <p>The design event is arguably the most intellectually demanding part of the competition. A panel of industry judges - many of them working chassis, suspension, and vehicle dynamics engineers at OEMs and motorsport organisations - dissect every engineering choice in the car. They are not interested in whether it looks fast; they want to know why you chose that spring rate, what your load transfer analysis tells you, and how you validated your choices. For a suspension engineer specifically, it is as close as you get as a student to a genuine engineering design review.</p>
+          <div class="pullquote">
+            <p>"The fastest setup is worthless if you can't explain why it works."</p>
+            <cite>- Paraphrased from Milliken &amp; Milliken, Race Car Vehicle Dynamics (1995)</cite>
+          </div>
+        </div>
+
+        <div class="prose-section">
+          <h3>Why it matters for an aspiring vehicle dynamics engineer</h3>
+          <p>Most undergraduate engineering projects involve analysis of an existing system, or design of a single component in isolation. Formula Student is different in one crucial respect: you own the full lifecycle. The suspension on this car starts as an idea rooted in vehicle dynamics theory, gets developed through analytical tools I am building myself, refined through simulation, translated into manufactured components, and will ultimately be validated through physical testing on track. That complete chain - from first principles to physical evidence - is rare at undergraduate level, and it is exactly the kind of work that translates directly to industry roles in vehicle dynamics, chassis engineering, and motorsport.</p>
+          <p>There is also the constraint-driven nature of the work. Industry does not hand you unconstrained design freedom, and neither does Formula Student. Packaging envelopes, regulatory compliance, manufacturing capability, weight targets, and budget all push back against the ideal solution. Learning to navigate that - to make defensible engineering trade-offs rather than just optimising a single variable - is the real education.</p>
+        </div>
+
+        <div class="prose-section">
+          <h3>The project in context</h3>
+          <p>This project concerns the suspension system for Team HARE's 2026 car. The suspension system is the interface between the tyre and the chassis, and its job is to keep as much of each tyre's contact patch pressed against the road as possible, in as many conditions as possible. More contact patch means more grip, more cornering speed, harder braking, and faster acceleration.</p>
+          <p>But the fastest car on paper is not always the fastest car in practice. As Milliken &amp; Milliken note in Race Car Vehicle Dynamics, a suspension system set up perfectly for a theoretical ideal driver may be genuinely difficult to drive at the limit. So the design target is not just peak grip - it is a system with enough independent tunability that we can shape the car's behaviour around the driver. That is the core motivation for mode decoupling.</p>
+        </div>
+
+        <div class="prose-section">
+          <h3>The body modes - and why decoupling them matters</h3>
+          <p>A car's body moves in four principal ways relative to its wheels, each governed by different physical mechanisms and each affecting vehicle behaviour in distinct ways. This framework is set out clearly by Milliken &amp; Milliken and Olley in Chassis Design: Principles and Analysis.</p>
+          <div class="mode-grid">
+            <div class="mode-card">
+              <div class="mode-axis">Vertical translation</div>
+              <div class="mode-name">Heave</div>
+              <div class="mode-desc">All four wheels move together. Governed by combined spring and damper stiffness. Affects ride frequency and, in high-downforce cars, aerodynamic platform stability.</div>
+            </div>
+            <div class="mode-card">
+              <div class="mode-axis">Longitudinal rotation</div>
+              <div class="mode-name">Roll</div>
+              <div class="mode-desc">Body rotates about the car's long axis in cornering. Determined by roll stiffness distribution and roll centre geometry. Directly controls lateral load transfer and grip balance.</div>
+            </div>
+            <div class="mode-card">
+              <div class="mode-axis">Lateral rotation</div>
+              <div class="mode-name">Pitch</div>
+              <div class="mode-desc">Body rotates about the lateral axis under braking and acceleration. Controlled by longitudinal stiffness and anti-dive/anti-squat geometry. Affects braking stability and driver feedback.</div>
+            </div>
+            <div class="mode-card">
+              <div class="mode-axis">Vertical rotation / diagonal</div>
+              <div class="mode-name">Yaw / warp</div>
+              <div class="mode-desc">Rotation about the vertical axis or diagonal load transfer across axles. Influenced by mass moments of inertia, suspension compliance, and tyre properties.</div>
+            </div>
+          </div>
+          <p>In a conventional spring-and-damper suspension, these modes are inherently coupled - changing the spring rate to stiffen heave also changes roll stiffness, and adjusting roll stiffness via springs affects ride frequency. Mode decoupling breaks these dependencies apart. For Team HARE's low-downforce car, the meaningful gains are in decoupling roll from pitch stiffness via ARBs, rather than investing in a full heave decoupling system that would add mass and complexity for limited return.</p>
+        </div>
+
+        <div class="img-placeholder">
+          <div class="img-placeholder-inner">
+            <div class="img-placeholder-icon">⌗</div>
+            <div class="img-placeholder-label">Image Slot</div>
+            <div class="img-placeholder-desc">Body modes diagram or double wishbone geometry schematic. Replace this block with: &lt;img class="img-real" src="your-image.jpg" alt="description"&gt;</div>
+          </div>
+          <div class="img-caption">Fig. 1 — Body modes and double wishbone geometry overview</div>
+        </div>
+
+        <div class="prose-section">
+          <h3>Choosing the architecture - double wishbone</h3>
+          <p>The double wishbone configuration emerges as the clear choice after reviewing the alternatives. It offers precise kinematic control over camber gain, roll centre height, and instant centre location - all tunable through hardpoint placement. As Theander demonstrates in Design of a Suspension for a Formula Student Race Car, the inboard rocker layout allows springs, dampers, and ARB pickup points to be positioned centrally, keeping unsprung mass low and the centre of gravity close to the floor. This aligns directly with the theoretical frameworks of Milliken, Olley, and Pacejka - and it is the dominant architecture in Formula Student for good reason.</p>
+        </div>
+
+        <div class="prose-section">
+          <h3>Reviewing existing decoupling approaches</h3>
+          <div class="review-grid">
+            <div class="review-item">
+              <div><div class="review-item-name">AMZ Passive Hydraulic</div><div class="review-item-verdict verdict-no">NOT SUITABLE</div></div>
+              <div class="review-item-desc">Dedicated hydraulic circuits and accumulators achieve clean roll/heave separation - a genuine benchmark. But significant mass, hydraulic complexity, and safety considerations sit awkwardly within FS regulations on pressure containment.</div>
+            </div>
+            <div class="review-item">
+              <div><div class="review-item-name">FRIC Systems</div><div class="review-item-verdict verdict-no">NOT SUITABLE</div></div>
+              <div class="review-item-desc">Front-rear interconnected dampers offer pitch and heave stability benefits but are primarily relevant in high-downforce applications. Risk of being interpreted as an active aerodynamic device under the rules.</div>
+            </div>
+            <div class="review-item">
+              <div><div class="review-item-name">Heave Springs</div><div class="review-item-verdict verdict-future">FUTURE DEV.</div></div>
+              <div class="review-item-desc">A dedicated spring element within the rocker assembly resists symmetric wheel movement but not asymmetric (roll) movement. Simple and rule-compliant. Adequate heave behaviour achievable via spring rate selection for now.</div>
+            </div>
+            <div class="review-item">
+              <div><div class="review-item-name">Anti-Roll Bars</div><div class="review-item-verdict verdict-yes">SELECTED</div></div>
+              <div class="review-item-desc">Contribute roll stiffness without affecting heave stiffness. Easily adjusted between sessions. Integrate cleanly into the double wishbone layout. The primary mode-decoupling mechanism for this design.</div>
+            </div>
+            <div class="review-item">
+              <div><div class="review-item-name">Inerters &amp; TMDs</div><div class="review-item-verdict verdict-no">NOT SUITABLE</div></div>
+              <div class="review-item-desc">Mass and manufacturing complexity make inerters and tuned mass dampers unsuitable for this context at Team HARE, despite their theoretical interest in influencing dynamic response frequencies.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="prose-section">
+          <h3>Simulation methodology</h3>
+          <p>Rather than jumping straight into CAD, the plan is to build up a layered simulation framework. Each layer adds fidelity and is cross-validated against the one below it before adding complexity.</p>
+          <div class="sim-stack">
+            <div class="sim-layer"><div class="sim-layer-num">01</div><div class="sim-layer-name">Excel geometry tool</div><div class="sim-layer-desc">Converts hardpoints into dynamic properties. Calculates spring rates, motion ratios, and ARB stiffnesses from first principles.</div></div>
+            <div class="sim-layer"><div class="sim-layer-num">02</div><div class="sim-layer-name">Point mass model</div><div class="sim-layer-desc">Load transfer analysis and comparison against existing data from the 2022 car. Target-setting baseline.</div></div>
+            <div class="sim-layer"><div class="sim-layer-num">03</div><div class="sim-layer-name">MSC Adams Car</div><div class="sim-layer-desc">Multi-body dynamic simulation for detailed kinematic and compliance analysis. 2021 vs. 2026 car comparison.</div></div>
+            <div class="sim-layer"><div class="sim-layer-num">04</div><div class="sim-layer-name">Track validation</div><div class="sim-layer-desc">Physical on-track testing to correlate against the Adams model and validate the design targets set at the start of the project.</div></div>
+          </div>
+        </div>
+
+        <div class="tag-row">
+          <span class="entry-tag">Literature review</span>
+          <span class="entry-tag">Double wishbone</span>
+          <span class="entry-tag">Body modes</span>
+          <span class="entry-tag">Mode decoupling</span>
+          <span class="entry-tag">ARB strategy</span>
+          <span class="entry-tag">Simulation methodology</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ENTRY 02 ═══ -->
+    <div class="entry-block fade-up" id="entry-02">
+      <div class="entry-header">
+        <div class="entry-num-large">02</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">Tooling Sprint &nbsp;·&nbsp; October – November 2025</div>
+          <div class="entry-title-large">Building the Simulation Stack</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+        <div class="prose-section">
+          <p>Every project needs a solid foundation, so the first few weeks are spent deep in the literature. The usual suspects are on the reading list - Milliken &amp; Milliken, Gillespie, Pacejka - alongside more niche references like Theander's Formula Student suspension design thesis. It is the kind of reading that takes time but pays back tenfold later.</p>
+          <p>Rather than jumping straight into CAD, the focus here is on building the analytical infrastructure - the tools that underpin every design decision downstream. It is a productive sprint, and some of the outputs end up being useful well beyond this project.</p>
+          <p>The centrepiece is a comprehensive Excel suspension geometry tool. Feed in the hardpoints, and it outputs dynamic properties, tyre stiffnesses, spring rates, motion ratios, anti-roll bar characteristics, and wishbone lengths. On top of that: a MATLAB data analysis GUI for processing MoTeC telemetry from the car's dashboard (now used across teams), a G-G diagram tool for visualising lateral and longitudinal acceleration and understanding load transfer, and a Pacejka 5 regression tool using Tyre Test Consortium data - the latter feeding directly into Adams Car modelling later.</p>
+          <p>Early CAD work begins in parallel, mostly to understand rocker positions and think through the chassis changes that will be needed. ARB specification is also started. The design machine is warming up.</p>
+        </div>
+        <div class="img-placeholder">
+          <div class="img-placeholder-inner">
+            <div class="img-placeholder-icon">📊</div>
+            <div class="img-placeholder-label">Image Slot</div>
+            <div class="img-placeholder-desc">Screenshot of the Excel suspension geometry calculator or MATLAB G-G diagram tool output</div>
+          </div>
+          <div class="img-caption">Fig. 2 — Excel suspension geometry calculator / MATLAB telemetry analysis tool</div>
+        </div>
+        <div class="tag-row">
+          <span class="entry-tag active">Tools built</span>
+          <span class="entry-tag">Excel geometry tool</span>
+          <span class="entry-tag">MATLAB / MoTeC</span>
+          <span class="entry-tag">Pacejka 5 regression</span>
+          <span class="entry-tag">G-G diagram</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ENTRY 03 ═══ -->
+    <div class="entry-block fade-up" id="entry-03">
+      <div class="entry-header">
+        <div class="entry-num-large">03</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">Design Phase &nbsp;·&nbsp; November – December 2025</div>
+          <div class="entry-title-large">Geometry Locked In - Front &amp; Rear Initial Designs</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+        <div class="prose-section">
+          <p>The initial front and rear suspension designs are now done - geometrically fixed, with spring rates and ride frequencies calculated. The big remaining task is translating geometry into actual components, but the hard thinking about where everything lives is settled.</p>
+          <p>Rockers are sized based on motion ratios and pushrod angles, and the ARB specification work begins in earnest - though an early error (calculating springs in series rather than parallel) means those numbers need to be revisited. A useful reminder that first-pass calculations always need a sanity check.</p>
+          <p>The to-do list at this stage is substantial: ARB design, force calculations across all components, full component design (wishbones, pushrods, rockers, toe links, steering arms, ARB links and arms, diff hanger brace), FEA, drawings, manufacture, Adams modelling, tube testing, and track validation. A long road ahead, but the path is clear.</p>
+        </div>
+        <div class="img-placeholder">
+          <div class="img-placeholder-inner">
+            <div class="img-placeholder-icon">⚙</div>
+            <div class="img-placeholder-label">Image Slot</div>
+            <div class="img-placeholder-desc">Front and rear suspension geometry layouts in SolidWorks - hardpoint positions, rocker locations, pushrod angles</div>
+          </div>
+          <div class="img-caption">Fig. 3 — Front (left) and rear (right) initial suspension geometry</div>
+        </div>
+        <div class="tag-row">
+          <span class="entry-tag">Spring rates</span>
+          <span class="entry-tag">Rocker geometry</span>
+          <span class="entry-tag">ARB specification started</span>
+          <span class="entry-tag">Front &amp; rear design</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ENTRY 04 ═══ -->
+    <div class="entry-block fade-up" id="entry-04">
+      <div class="entry-header">
+        <div class="entry-num-large">04</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">ARB Deep-Dive &nbsp;·&nbsp; December 2025</div>
+          <div class="entry-title-large">Anti-Roll Bar Specification - Harder Than Expected</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+        <div class="prose-section">
+          <p>One thing is clear this fortnight: ARB specification takes far longer than anticipated. It always does. The material choice lands on 4130 chromoly steel - good availability, well-understood fatigue behaviour, and weldable. A supplier is sourced.</p>
+          <p>Target diameters come out at 10 mm front and rear for ideal roll stiffnesses, with a high-level CAD model started to house everything. FEA on the chassis mounts is flagged as upcoming work, with the key question being how to correctly define the worst-case load - not just spring rate times maximum travel, but accounting for suspension bottoming-out scenarios.</p>
+          <p>Progress is slower than ideal here, but getting the ARB specification right is genuinely important - it is the primary roll stiffness tuning mechanism for the whole car, so it is worth the time.</p>
+        </div>
+        <div class="img-placeholder">
+          <div class="img-placeholder-inner">
+            <div class="img-placeholder-icon">📐</div>
+            <div class="img-placeholder-label">Image Slot</div>
+            <div class="img-placeholder-desc">ARB stiffness calculation workings or high-level CAD assembly model showing ARB packaging and routing</div>
+          </div>
+          <div class="img-caption">Fig. 4 — ARB specification calculations and initial packaging</div>
+        </div>
+        <div class="tag-row">
+          <span class="entry-tag">4130 chromoly steel</span>
+          <span class="entry-tag">10 mm diameter (F&amp;R)</span>
+          <span class="entry-tag">CAD started</span>
+          <span class="entry-tag">FEA scoped</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ENTRY 05 ═══ -->
+    <div class="entry-block fade-up" id="entry-05">
+      <div class="entry-header">
+        <div class="entry-num-large">05</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">Component Design &nbsp;·&nbsp; January 2026</div>
+          <div class="entry-title-large">95% Complete - Parts Taking Shape</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+        <div class="prose-section">
+          <p>A satisfying update: full part design hits approximately 95% completion. Pushrods, wishbones, rockers, and roll bars are all done in CAD form. The rear ARB is converted from a U-bar to a T-bar configuration - a better packaging solution that also saves some weight. Front and rear rockers are redesigned for improved packaging while keeping the same geometry.</p>
+          <p>Bearing specification is complete. The ARB diameters are revised: 5/16 in. at the rear, 10 mm at the front - a small but meaningful change from the earlier iteration.</p>
+          <p>Remaining work: toe links, part mirroring, FEA of nodes and bars, and production drawings for all in-house manufactured components. A manufacturing team meeting is on the calendar for the end of the week.</p>
+        </div>
+        <div class="img-placeholder">
+          <div class="img-placeholder-inner">
+            <div class="img-placeholder-icon">🔩</div>
+            <div class="img-placeholder-label">Image Slot</div>
+            <div class="img-placeholder-desc">CAD renders of completed parts — wishbone assemblies, rocker design, T-bar rear ARB vs. original U-bar concept</div>
+          </div>
+          <div class="img-caption">Fig. 5 — Wishbone, rocker, and T-bar ARB CAD models</div>
+        </div>
+        <div class="tag-row">
+          <span class="entry-tag active">Design ~95% done</span>
+          <span class="entry-tag">T-bar rear ARB</span>
+          <span class="entry-tag">Bearings specified</span>
+          <span class="entry-tag">Revised ARB diameters</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ENTRY 06 ═══ -->
+    <div class="entry-block fade-up" id="entry-06">
+      <div class="entry-header">
+        <div class="entry-num-large">06</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">Manufacture Prep &nbsp;·&nbsp; January – February 2026</div>
+          <div class="entry-title-large">Logistics, Materials &amp; Manufacturability</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+        <div class="prose-section">
+          <p>The focus shifts here from design to getting parts actually made. Two components (and their mirrors) are changed following manufacturing team feedback - a necessary but slightly humbling step that comes with every real engineering project.</p>
+          <p>Material selections are finalised: Aluminium 7075-T6 for most nodes and structural linkages, 6082 for non-load-bearing parts where lower cost and slight weight saving make sense, and 4130 steel for anything welded. DIN ISO 286 press-fit tolerances are applied across bearing interfaces.</p>
+          <p>The model is populated with fixtures and fittings, material and component orders are initiated (CFRP tubes, aluminium, steel, adhesives), and the first production drawings start flowing out. With 80 individual machined parts and 48 assemblies to track, keeping on top of the logistics becomes a project in itself.</p>
+        </div>
+        <div class="stat-row">
+          <div class="stat-card"><div class="s-label">Structural nodes &amp; links</div><div class="s-val">7075-T6 Al</div></div>
+          <div class="stat-card"><div class="s-label">Non-structural parts</div><div class="s-val">6082-T6 Al</div></div>
+          <div class="stat-card"><div class="s-label">Welded components</div><div class="s-val">4130 Steel</div></div>
+        </div>
+        <div class="img-placeholder">
+          <div class="img-placeholder-inner">
+            <div class="img-placeholder-icon">📋</div>
+            <div class="img-placeholder-label">Image Slot</div>
+            <div class="img-placeholder-desc">Example production drawing showing DIN ISO 286 tolerances, or the part and assembly tracker spreadsheet</div>
+          </div>
+          <div class="img-caption">Fig. 6 — Sample production drawing with GD&amp;T tolerancing</div>
+        </div>
+        <div class="tag-row">
+          <span class="entry-tag">7075-T6 aluminium</span>
+          <span class="entry-tag">DIN ISO 286 fits</span>
+          <span class="entry-tag">80 machined parts</span>
+          <span class="entry-tag">48 assemblies</span>
+          <span class="entry-tag">Materials ordered</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ENTRY 07 ═══ -->
+    <div class="entry-block fade-up" id="entry-07">
+      <div class="entry-header">
+        <div class="entry-num-large">07</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">FEA &amp; Drawings &nbsp;·&nbsp; February 2026</div>
+          <div class="entry-title-large">Design Frozen - FEA Results &amp; Drawing Approval</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+        <div class="prose-section">
+          <p>Design freeze. 37 parts and 2 welded assemblies are drawn, toleranced to DIN ISO 286, and approved by manufacturing. A significant milestone.</p>
+          <p>FEA is carried out on nodes and rocker assemblies, specifically to investigate whether parts can be downgraded from 7075-T6 to 6082-T6 aluminium (simulated as 6063-T6 in SolidWorks, which is functionally equivalent). The headline result: almost everything passes comfortably. The one exception is a stress concentration at the bearing interaction point of the worst-case node - but this is an artefact of modelling a bearing as a fixed point rather than a pivot. In reality, the plain spherical bearing allows rotation, so that "stretching" mode does not physically occur. All other regions on that node sit around 90 MPa, giving a factor of safety above 2.7 against 6082's yield strength.</p>
+          <p>The rocker FEA tells a more relaxed story: 0.1 mm deflection, under 10 MPa, FOS above 25. There is weight to be saved on the rocker plates, but given each one is about 20 g, the return on further iteration is judged to be minimal.</p>
+          <p>Material orders are placed, CFRP tube testing is scoped (axial compression, tension, and bending, with node overlap length as a variable), and the rear ARB receives a small geometry tweak to clear a clash at high bump/droop.</p>
+        </div>
+        <div class="img-placeholder">
+          <div class="img-placeholder-inner">
+            <div class="img-placeholder-icon">🔬</div>
+            <div class="img-placeholder-label">Image Slot</div>
+            <div class="img-placeholder-desc">SolidWorks FEA stress plots - node worst-case analysis and rocker deflection simulation results</div>
+          </div>
+          <div class="img-caption">Fig. 7 — FEA stress distribution: node (left) and rocker plate (right)</div>
+        </div>
+        <div class="tag-row">
+          <span class="entry-tag active">Design frozen</span>
+          <span class="entry-tag">FEA complete</span>
+          <span class="entry-tag">6082 approved</span>
+          <span class="entry-tag">37 drawings approved</span>
+          <span class="entry-tag">CFRP testing scoped</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ENTRY 08 ═══ -->
+    <div class="entry-block fade-up" id="entry-08">
+      <div class="entry-header">
+        <div class="entry-num-large">08</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">Manufacture &nbsp;·&nbsp; February – March 2026</div>
+          <div class="entry-title-large">Into Production - Slow But Steady</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+        <div class="prose-section">
+          <p>An honest assessment: a slower couple of weeks. The bulk of the effort goes into updating models for manufacturability - the kind of detail work that does not feel dramatic but is genuinely important for making sure the parts come out right. Material arrives and further FEA is performed.</p>
+          <p>Work begins on the design of a test fixture for node and tube compression, tension, and bending tests - varying both node-to-tube overlap lengths and CFRP wall thicknesses. This is important validation work: understanding the actual failure modes of the bonded carbon assemblies will either confirm the 40 mm overlap as conservative (likely) or flag a problem before the car is loaded.</p>
+          <p>Adams Car simulation of both the 2021 and 2026 suspension layouts is queued - a critical step for comparing predicted dynamic behaviour and validating the design targets set at the start of the project.</p>
+          <p>Outstanding: cone washer modelling, bolt specification, steel chassis mount drawings, node/tube testing, and Adams Car validation. The finish line is in sight.</p>
+        </div>
+        <div class="img-placeholder">
+          <div class="img-placeholder-inner">
+            <div class="img-placeholder-icon">🏭</div>
+            <div class="img-placeholder-label">Image Slot</div>
+            <div class="img-placeholder-desc">Photos of material stock arriving, machined parts coming off the mill, or CFRP tube test fixture design in SolidWorks</div>
+          </div>
+          <div class="img-caption">Fig. 8 — Parts in production / CFRP tube test fixture</div>
+        </div>
+        <div class="progress-block">
+          <div class="progress-title">Project status tracker</div>
+          <div class="progress-items">
+            <div class="progress-item"><div class="p-icon p-done">&#10003;</div>Suspension geometry fixed (front &amp; rear)</div>
+            <div class="progress-item"><div class="p-icon p-done">&#10003;</div>All spring rates and motion ratios calculated</div>
+            <div class="progress-item"><div class="p-icon p-done">&#10003;</div>ARB specification complete (10 mm F / 5/16 in R)</div>
+            <div class="progress-item"><div class="p-icon p-done">&#10003;</div>37 parts drawn and manufacturing-approved</div>
+            <div class="progress-item"><div class="p-icon p-done">&#10003;</div>FEA complete on nodes and rocker</div>
+            <div class="progress-item"><div class="p-icon p-done">&#10003;</div>Material ordered and arriving</div>
+            <div class="progress-item"><div class="p-icon p-wip">&#8987;</div>Parts in manufacture</div>
+            <div class="progress-item"><div class="p-icon p-wip">&#8987;</div>CFRP tube test fixture design</div>
+            <div class="progress-item"><div class="p-icon p-todo">○</div>Adams Car simulation (2021 vs. 2026)</div>
+            <div class="progress-item"><div class="p-icon p-todo">○</div>Node / tube compression &amp; bending tests</div>
+            <div class="progress-item"><div class="p-icon p-todo">○</div>Track testing &amp; model correlation</div>
+          </div>
+        </div>
+        <div class="tag-row">
+          <span class="entry-tag">Manufacturability updates</span>
+          <span class="entry-tag">Material received</span>
+          <span class="entry-tag">Test fixture design</span>
+          <span class="entry-tag active">Adams Car — upcoming</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <span class="footer-left">&#169; 2026 &nbsp;·&nbsp; Max Matthew &nbsp;·&nbsp; Huddersfield, UK</span>
+    <div class="footer-links">
+      <a href="index.html">Home</a>
+      <a href="index.html#projects">Projects</a>
+      <a href="https://www.linkedin.com/in/maxmatthew/">LinkedIn</a>
+      <a href="/CV - Max Matthew.pdf">View CV</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+  }, { threshold: 0.05, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+  const sections = document.querySelectorAll('.entry-block[id]');
+  const tocLinks = document.querySelectorAll('.toc-list a');
+  const tocObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        tocLinks.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`.toc-list a[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { threshold: 0.3, rootMargin: '-60px 0px -60% 0px' });
+  sections.forEach(s => tocObserver.observe(s));
+</script>
+</body>
+</html>
