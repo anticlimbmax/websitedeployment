@@ -120,7 +120,6 @@
     animation: fadeUp 0.6s 0.1s ease both;
   }
   .hero h1 .accent { color: var(--blue); }
-  .hero h1 .accent-red { color: var(--red); }
   .hero-sub {
     font-size: 16px; color: var(--text-mid); max-width: 600px; margin: 0 auto 48px;
     line-height: 1.7; font-weight: 400;
@@ -280,10 +279,7 @@
     font-size: 40px; position: relative; overflow: hidden;
   }
   .cover-1 { background: linear-gradient(135deg, #0D1117 0%, #1C2333 50%, rgba(26,106,255,0.15) 100%); }
-  .cover-2 { background: linear-gradient(135deg, #0D1117 0%, #1C2333 50%, rgba(230,57,70,0.15) 100%); }
-  .cover-3 { background: linear-gradient(135deg, #0D1117 0%, #1C2333 50%, rgba(63,185,80,0.12) 100%); }
   .cover-4 { background: linear-gradient(135deg, #0D1117 0%, #1C2333 50%, rgba(240,180,0,0.12) 100%); }
-  .cover-5 { background: linear-gradient(135deg, #0D1117 0%, #1C2333 50%, rgba(26,106,255,0.2) 100%); }
   .cover-render { background: var(--bg); border-bottom: 1px solid var(--border); }
   .cover-render img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 12px; }
   .project-cover .cover-schematic {
@@ -340,19 +336,6 @@
   .dl-li { background: rgba(0,119,181,0.12); }
   .download-info .name { font-size: 15px; font-weight: 600; color: var(--text); }
   .download-info .desc { font-size: 12px; color: var(--text-mid); font-family: var(--font-mono); }
-  .form-group { margin-bottom: 16px; }
-  .form-group label { display: block; font-size: 12px; color: var(--text-mid); font-family: var(--font-mono); margin-bottom: 6px; letter-spacing: 0.08em; }
-  .form-group input, .form-group select, .form-group textarea {
-    width: 100%; background: var(--bg); border: 1px solid var(--border);
-    border-radius: 8px; padding: 10px 14px;
-    color: var(--text); font-family: var(--font-display); font-size: 14px;
-    outline: none; transition: border-color 0.2s;
-  }
-  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--blue); }
-  .form-group textarea { resize: vertical; min-height: 100px; }
-  select option { background: var(--bg); }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
   footer { border-top: 1px solid var(--border); padding: 32px 40px; background: var(--bg); }
   .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
   .footer-left { font-size: 13px; color: var(--text-dim); font-family: var(--font-mono); }
@@ -367,7 +350,6 @@
   @media (max-width: 900px) {
     .hero-stats { grid-template-columns: repeat(2, 1fr); }
     .skills-grid, .projects-grid, .blog-grid { grid-template-columns: repeat(2, 1fr) !important; }
-    .contact-grid { grid-template-columns: 1fr; }
     .exp-kpis { grid-template-columns: repeat(2, 1fr); }
     nav { padding: 0 20px; }
     .nav-links { display: none; }
@@ -376,7 +358,6 @@
   @media (max-width: 600px) {
     .hero-stats { grid-template-columns: repeat(2, 1fr); }
     .skills-grid, .projects-grid, .blog-grid { grid-template-columns: 1fr !important; }
-    .form-row { grid-template-columns: 1fr; }
   }
 
   #education { background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
@@ -384,7 +365,7 @@
   .edu-card {
     border: 1px solid var(--border); border-radius: 12px;
     background: var(--bg); overflow: hidden;
-    display: flex; gap: 0;
+    display: flex;
     transition: border-color 0.2s, box-shadow 0.2s;
   }
   .edu-card:hover { border-color: var(--blue); box-shadow: 0 0 24px var(--blue-dim); }
@@ -449,7 +430,6 @@
     .edu-grade { align-self: flex-start; }
   }
 
-  .counter { display: inline-block; }
 </style>
 </head>
 <body>
