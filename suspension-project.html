@@ -14,7 +14,6 @@
     --bg-raised: #1C2333;
     --blue: #1A6AFF;
     --blue-dim: rgba(26,106,255,0.12);
-    --blue-glow: rgba(26,106,255,0.35);
     --red: #E63946;
     --red-dim: rgba(230,57,70,0.12);
     --green: #3FB950;
@@ -51,21 +50,15 @@
   .nav-back { background: transparent; color: var(--text-mid); padding: 7px 16px; border-radius: 6px; font-family: var(--font-display); font-size: 13px; font-weight: 600; transition: all 0.2s; text-decoration: none; border: 1px solid var(--border); display: flex; align-items: center; gap: 7px; }
   .nav-back:hover { border-color: var(--blue); color: var(--blue); }
 
-  .article-hero { padding: 120px 40px 60px; position: relative; z-index: 1; border-bottom: 1px solid var(--border); }
-  .article-hero-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 440px; gap: 60px; align-items: center; }
-  .article-hero-text {}
+  .article-hero { padding: 120px 40px 20px; position: relative; z-index: 1; border-bottom: 1px solid var(--border); }
+  .article-hero-inner { max-width: 1300px; margin: 0 auto; display: grid; grid-template-columns: 1fr 560px; gap: 40px; align-items: center; }
   .hero-render {
-    position: relative; border-radius: 16px; overflow: hidden;
-    border: 1px solid var(--border); background: var(--bg-card);
-    aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center;
+    position: relative;
+    display: flex; align-items: flex-end; justify-content: center;
+    margin-bottom: -80px;
+    filter: drop-shadow(0 24px 48px rgba(26,106,255,0.12));
   }
-  .hero-render img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 16px; }
-  .hero-render-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 40px 32px; text-align: center; width: 100%; }
-  .hero-render-placeholder .rp-icon { width: 56px; height: 56px; border-radius: 12px; background: var(--bg-raised); border: 1px dashed var(--border-hover); display: flex; align-items: center; justify-content: center; font-size: 24px; }
-  .hero-render-placeholder .rp-label { font-family: var(--font-mono); font-size: 11px; color: var(--blue); letter-spacing: 0.12em; text-transform: uppercase; }
-  .hero-render-placeholder .rp-desc { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); line-height: 1.5; max-width: 240px; }
-  .hero-render-caption { position: absolute; bottom: 0; left: 0; right: 0; padding: 8px 14px; background: rgba(13,17,23,0.8); border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.06em; display: flex; align-items: center; justify-content: space-between; }
-  .hero-render-caption .rc-tag { color: var(--blue); }
+  .hero-render img { width: 100%; height: auto; object-fit: contain; display: block; }
   .article-hero-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
   .article-tag { display: inline-flex; align-items: center; gap: 8px; background: var(--blue-dim); border: 1px solid rgba(26,106,255,0.3); padding: 5px 14px; border-radius: 100px; font-family: var(--font-mono); font-size: 11px; color: var(--blue); letter-spacing: 0.1em; }
   .article-tag .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); animation: pulse 2s infinite; }
@@ -81,7 +74,7 @@
   .article-stat .num { font-size: 20px; font-weight: 800; color: var(--blue); display: block; }
   .article-stat .label { font-size: 10px; color: var(--text-mid); margin-top: 3px; font-family: var(--font-mono); letter-spacing: 0.04em; line-height: 1.4; }
 
-  .article-layout { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 220px 1fr; gap: 0; padding: 0 40px; position: relative; z-index: 1; }
+  .article-layout { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 220px 1fr; gap: 0; padding: 80px 40px 0; position: relative; z-index: 1; }
   .article-toc { padding: 48px 32px 48px 0; border-right: 1px solid var(--border); }
   .toc-sticky { position: sticky; top: 80px; }
   .toc-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 16px; }
@@ -126,7 +119,6 @@
   .mode-desc { font-size: 12px; color: var(--text-mid); line-height: 1.55; }
 
   .fs-chip-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; }
-  @media (max-width: 800px) { .fs-chip-row { grid-template-columns: 1fr !important; } }
   .fs-chip { background: var(--bg-raised); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
   .fs-chip .fc-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 5px; }
   .fs-chip .fc-val { font-size: 13px; font-weight: 600; color: var(--text); }
@@ -137,8 +129,6 @@
   .img-placeholder-label { font-family: var(--font-mono); font-size: 11px; color: var(--blue); letter-spacing: 0.1em; text-transform: uppercase; }
   .img-placeholder-desc { font-size: 12px; color: var(--text-dim); font-family: var(--font-mono); max-width: 340px; line-height: 1.5; }
   .img-caption { padding: 10px 16px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.04em; }
-  /* To add a real image: replace the img-placeholder-inner div with <img class="img-real" src="path/to/img.jpg" alt="description"> */
-  .img-real { width: 100%; display: block; border-radius: 10px 10px 0 0; object-fit: cover; }
 
   .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
   .entry-tag { font-family: var(--font-mono); font-size: 11px; padding: 4px 12px; border-radius: 100px; border: 1px solid var(--border); color: var(--text-dim); transition: all 0.2s; }
@@ -184,26 +174,26 @@
   .fade-up.visible { opacity: 1; transform: translateY(0); }
 
   @media (max-width: 960px) {
-    .article-layout { grid-template-columns: 1fr; padding: 0 20px; }
+    .article-layout { grid-template-columns: 1fr; padding: 40px 20px 0; }
     .article-toc { display: none; }
     .article-body { padding: 32px 0; }
     .prose { margin-left: 0; }
     .entry-divider { margin-left: 0; }
     .entry-num-large { font-size: 40px; width: 44px; }
     .mode-grid, .stat-row { grid-template-columns: 1fr 1fr; }
-    .article-hero-inner { grid-template-columns: 1fr; gap: 36px; }
-    .hero-render { max-width: 500px; }
+    .article-hero-inner { grid-template-columns: 1fr; gap: 0; }
+    .hero-render { margin-bottom: 0; max-width: 560px; margin-top: 24px; }
     .article-hero-stats { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 600px) {
     nav { padding: 0 16px; }
     .nav-breadcrumb { display: none; }
-    .article-hero { padding: 90px 20px 40px; }
+    .article-hero { padding: 90px 20px 20px; }
     .review-item { grid-template-columns: 1fr; gap: 8px; }
     .sim-layer { grid-template-columns: 24px 1fr; }
     .sim-layer-desc { display: none; }
-    .mode-grid, .stat-row { grid-template-columns: 1fr; }
-    .hero-render { max-width: 100%; }
+    .mode-grid, .stat-row, .fs-chip-row { grid-template-columns: 1fr; }
+    .hero-render { max-width: 100%; margin-bottom: 0; }
   }
 </style>
 </head>
@@ -242,9 +232,6 @@
     </div>
     <div class="hero-render">
       <img src="Full Suspension Render.png" alt="Suspension system render" />
-    <div class="hero-render-caption">
-      <span>Full suspension assembly · 2026</span>
-      <span class="rc-tag">TEAM HARE CV</span>
     </div>
   </div>
 </section>
@@ -345,7 +332,7 @@
           <div class="img-placeholder-inner">
             <div class="img-placeholder-icon">⌗</div>
             <div class="img-placeholder-label">Image Slot</div>
-            <div class="img-placeholder-desc">Body modes diagram or double wishbone geometry schematic. Replace this block with: &lt;img class="img-real" src="your-image.jpg" alt="description"&gt;</div>
+            <div class="img-placeholder-desc">Body modes diagram or double wishbone geometry schematic</div>
           </div>
           <div class="img-caption">Fig. 1 — Body modes and double wishbone geometry overview</div>
         </div>
