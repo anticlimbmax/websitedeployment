@@ -238,13 +238,13 @@
 <div class="section-num">01 &nbsp;— MOTIVATION</div>
 <h2 id="why">Why I Built It — Learning by Building</h2>
 
-<p>I learn best by doing. Reading Milliken &amp; Milliken's <em>Race Car Vehicle Dynamics</em> cover to cover is one thing; building a tool that produces meaningful numbers from first principles is something else entirely. When I took on the Vehicle Dynamics role at Team HARE CV for Formula Student, I faced a choice: jump straight into CAD and worry about the maths later, or develop a rigorous analytical model first that would make every geometric decision traceable and defensible.</p>
+<p>I learn best by doing. Reading Milliken &amp; Milliken's - Race Car Vehicle Dynamics</em> cover to cover is one thing; building a tool that produces meaningful numbers from first principles is something else entirely. When I took on the Vehicle Dynamics role at Team HARE CV for Formula Student, I faced a choice: jump straight into CAD and worry about the maths later, or develop a rigorous analytical model first that would make every geometric decision traceable and defensible.</p>
 
 <p>I chose the latter — and Excel was the deliberate choice. Not because dedicated tools like OptimumKinematics or MSC Adams don't exist, but because building it myself forced me to understand every relationship at the equation level before trusting any output. If the formula is wrong, the number is wrong. There is no abstraction layer to hide behind. It also keeps the whole team in the loop — anyone can open it, interrogate a number, and follow the cell references back to the source without installing anything.</p>
 
 <div class="callout blue">
   <div class="callout-icon">📚</div>
-  <div class="callout-text"><strong>Core references:</strong> Milliken &amp; Milliken — <em>Race Car Vehicle Dynamics</em>; Olley, Milliken &amp; Milliken — <em>Chassis Design, Principles &amp; Analysis</em>; Pacejka — <em>Tyre and Vehicle Dynamics</em>; Staniforth — <em>Competition Car Suspension</em>; Gillespie — <em>Fundamentals of Vehicle Dynamics</em>; Mitchell — <em>Roll Centre Myths and Reality</em>.</div>
+  <div class="callout-text"><strong>Core references:</strong> Milliken &amp; Milliken — - Race Car Vehicle Dynamics</em>; Olley, Milliken &amp; Milliken — - Chassis Design, Principles &amp; Analysis</em>; Pacejka — - Tyre and Vehicle Dynamics</em>; Staniforth — - Competition Car Suspension</em>; Gillespie — - Fundamentals of Vehicle Dynamics</em>; Mitchell — - Roll Centre Myths and Reality</em>.</div>
 </div>
 
 <!-- 02 -->
@@ -348,11 +348,11 @@
 <div class="callout red">
   <div class="callout-icon">⚠️</div>
   <div class="callout-text">
-    <strong>Roll centre myths and reality.</strong> The kinematic roll centre is frequently treated as a primary design target, but its physical significance is more limited than commonly assumed. As Mitchell writes in <em>Roll Centre Myths and Reality</em>: <em>"The FAPs and the Force-Based Roll Center are important. The Kinematic Roll Center is of little value."</em>
+    <strong>Roll centre myths and reality.</strong> The kinematic roll centre is frequently treated as a primary design target, but its physical significance is more limited than commonly assumed. As Mitchell writes in - Roll Centre Myths and Reality</em>: - "The FAPs and the Force-Based Roll Center are important. The Kinematic Roll Center is of little value."</em>
     <br><br>
     The kinematic construction assumes rigid bodies, massless links, and no tyre compliance — none of which hold under dynamic loading. What actually governs the geometric component of lateral load transfer are the <strong>Force Application Points (FAPs)</strong> — the points through which suspension links physically apply lateral force to the sprung mass — which do not in general coincide with the kinematic roll centre. Under large lateral accelerations with compliant tyres, the force-based roll centre migrates substantially from its kinematic prediction.
     <br><br>
-    The value of tracking kinematic roll centre in this tool is therefore primarily comparative: understanding how geometry changes shift it <em>relative to a baseline</em> is useful for directional tuning. Treating its absolute position as a direct prediction of vehicle behaviour is not justified.
+    The value of tracking kinematic roll centre in this tool is therefore primarily comparative: understanding how geometry changes shift it - relative to a baseline</em> is useful for directional tuning. Treating its absolute position as a direct prediction of vehicle behaviour is not justified.
   </div>
 </div>
 
@@ -520,7 +520,7 @@
 
 <p>Any discussion of lateral load transfer is incomplete without understanding <strong>tyre load sensitivity</strong>. It is arguably the most important single concept in vehicle dynamics set-up, and one of the most commonly glossed over.</p>
 
-<p>Unlike the approximately linear static spring rate, a tyre's lateral force generation is markedly <em>degressive</em> with vertical load. At low loads the relationship is roughly linear — double the load, approximately double the lateral force. But as load increases, the tyre saturates: the rate of lateral force gain diminishes. This non-linearity is described thoroughly by Pacejka and is observable in any FSAE tyre dataset. Where the spring rate data suggested linearity was a safe approximation, the lateral force data makes clear it is not.</p>
+<p>Unlike the approximately linear static spring rate, a tyre's lateral force generation is markedly - degressive</em> with vertical load. At low loads the relationship is roughly linear — double the load, approximately double the lateral force. But as load increases, the tyre saturates: the rate of lateral force gain diminishes. This non-linearity is described thoroughly by Pacejka and is observable in any FSAE tyre dataset. Where the spring rate data suggested linearity was a safe approximation, the lateral force data makes clear it is not.</p>
 
 <div class="formula-box">
   <span class="formula-label">TYRE LOAD SENSITIVITY — CONCEPTUAL</span>
@@ -532,7 +532,7 @@
   <div class="formula-desc">The marginal lateral force gained by adding load decreases as total load increases. The tyre becomes less efficient at high loads — additional vertical load buys proportionally less lateral grip.</div>
 </div>
 
-<p>The consequence for vehicle set-up is direct and important: <strong>lateral load transfer reduces total axle grip</strong>. Consider two wheels on the same axle, each carrying \(F_0\) of vertical load at rest. In a corner, load transfers by \(\Delta F\) — the outer wheel sees \(F_0 + \Delta F\) and the inner sees \(F_0 - \Delta F\). The outer wheel gains some lateral force capacity, but due to the degressive curve, it gains <em>less</em> than the inner wheel loses. The axle's total lateral force potential decreases.</p>
+<p>The consequence for vehicle set-up is direct and important: <strong>lateral load transfer reduces total axle grip</strong>. Consider two wheels on the same axle, each carrying \(F_0\) of vertical load at rest. In a corner, load transfers by \(\Delta F\) — the outer wheel sees \(F_0 + \Delta F\) and the inner sees \(F_0 - \Delta F\). The outer wheel gains some lateral force capacity, but due to the degressive curve, it gains - less</em> than the inner wheel loses. The axle's total lateral force potential decreases.</p>
 
 <div class="callout blue">
   <div class="callout-icon">💡</div>
@@ -552,7 +552,7 @@
 <div class="section-num" style="margin-top:56px">10 &nbsp;— LOAD TRANSFER IN DETAIL</div>
 <h2 id="weight-transfer">Lateral Load Transfer — Decomposed</h2>
 
-<p>With tyre load sensitivity in mind, the Weight Transfer sheet becomes more than a force accounting exercise. The goal is not just to know how much load transfers — it is to understand <em>through which paths</em> it goes, and what that means for grip balance.</p>
+<p>With tyre load sensitivity in mind, the Weight Transfer sheet becomes more than a force accounting exercise. The goal is not just to know how much load transfers — it is to understand - through which paths</em> it goes, and what that means for grip balance.</p>
 
 <h3>The Three Paths of Lateral Load Transfer</h3>
 
@@ -716,21 +716,21 @@
   <hr class="sidebar-divider">
   <div class="sidebar-section-title">KEY REFERENCES</div>
   <ul class="sidebar-list">
-    <li><em>Race Car Vehicle Dynamics</em><br>Milliken &amp; Milliken</li>
-    <li><em>Chassis Design</em><br>Olley, Milliken &amp; Milliken</li>
-    <li><em>Tyre and Vehicle Dynamics</em><br>Hans B. Pacejka</li>
-    <li><em>Roll Centre Myths and Reality</em><br>Mitchell</li>
-    <li><em>Competition Car Suspension</em><br>Allan Staniforth</li>
-    <li><em>Fundamentals of Vehicle Dynamics</em><br>Thomas Gillespie</li>
+    <li>- Race Car Vehicle Dynamics</em><br>Milliken &amp; Milliken</li>
+    <li>- Chassis Design</em><br>Olley, Milliken &amp; Milliken</li>
+    <li>- Tyre and Vehicle Dynamics</em><br>Hans B. Pacejka</li>
+    <li>- Roll Centre Myths and Reality</em><br>Mitchell</li>
+    <li>- Competition Car Suspension</em><br>Allan Staniforth</li>
+    <li>- Fundamentals of Vehicle Dynamics</em><br>Thomas Gillespie</li>
   </ul>
   <hr class="sidebar-divider">
   <div class="sidebar-section-title">TOOL SPECS</div>
   <ul class="sidebar-list">
-    <li>Platform: <em>Microsoft Excel</em></li>
-    <li>Sheets: <em>15 interconnected</em></li>
-    <li>Wishbone error: <em>&lt;0.05% vs CAD</em></li>
-    <li>Regression R²: <em>≈0.97</em></li>
-    <li>Status: <em>Deployed — Team HARE CV</em></li>
+    <li>Platform: - Microsoft Excel</em></li>
+    <li>Sheets: - 15 interconnected</em></li>
+    <li>Wishbone error: - &lt;0.05% vs CAD</em></li>
+    <li>Regression R²: - ≈0.97</em></li>
+    <li>Status: - Deployed — Team HARE CV</em></li>
   </ul>
 </aside>
 
