@@ -429,7 +429,6 @@
     .edu-meta-row { flex-direction: column; }
     .edu-grade { align-self: flex-start; }
   }
-
 </style>
 </head>
 <body>
@@ -866,10 +865,11 @@
     <h2 class="section-title">Project Deep-Dives</h2>
     <div class="projects-grid">
 
+      <!-- P01 — cover changed to Front-View-Geometry.png, link updated to article -->
       <div class="project-card fade-up">
-        <div class="project-cover cover-1">
-          <div class="cover-schematic">⌗</div>
+        <div class="project-cover cover-render">
           <span class="project-tag-id">P01</span>
+          <img src="Front-View-Geometry.png" alt="Front view suspension geometry diagram" />
         </div>
         <div class="project-body">
           <div class="project-tags">
@@ -882,7 +882,7 @@
         </div>
         <div class="project-footer">
           <span class="project-result">✓ Deployed for IMechE Competition</span>
-          <a href="#" class="project-link">Case Study Coming Soon</a>
+          <a href="suspension-calculator-article.html" class="project-link">Read Article →</a>
         </div>
       </div>
 
@@ -935,11 +935,12 @@
     <div class="section-label">SECTION 06</div>
     <h2 class="section-title">Insights</h2>
     <div class="blog-grid">
-      <div class="blog-card fade-up">
+      <!-- First card now links to the published article -->
+      <div class="blog-card fade-up" onclick="window.location='suspension-calculator-article.html'" style="cursor:pointer;">
         <span class="blog-type type-technical">TECHNICAL</span>
         <div class="blog-title">How I Built a Real-Time Suspension Geometry Calculator in Excel</div>
         <div class="blog-excerpt">Walking through the architecture of a roll-centre migration visualiser — from hardpoint matrices to instant centre computation, without a line of Python.</div>
-        <div class="blog-meta"><span>8 min read</span><span>Coming soon</span></div>
+        <div class="blog-meta"><span>15 min read</span><span>March 2026</span></div>
       </div>
       <div class="blog-card fade-up" style="transition-delay:0.1s">
         <span class="blog-type type-wip">WORK IN PROGRESS</span>
