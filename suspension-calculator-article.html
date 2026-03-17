@@ -96,18 +96,12 @@
   .formula-box {
     background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--blue);
     border-radius: 8px; padding: 20px 24px; margin: 24px 0;
-    overflow: visible; /* never clip equations */
+    overflow: visible;
   }
   .formula-box .formula-label { font-family: var(--font-mono); font-size: 10px; color: var(--blue); letter-spacing: 0.12em; margin-bottom: 12px; display: block; }
   .formula-box .formula-desc { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); margin-top: 10px; line-height: 1.6; }
-  /* SVG MathJax equations: scale down on narrow screens, never clip */
-  .formula-box mjx-container[display="true"] {
-    display: block; overflow-x: auto; overflow-y: visible;
-    max-width: 100%; padding-bottom: 4px;
-  }
-  .formula-box mjx-container[display="true"] svg {
-    max-width: 100%; height: auto;
-  }
+  .formula-box mjx-container[display="true"] { display: block; overflow-x: auto; overflow-y: visible; max-width: 100%; padding-bottom: 4px; }
+  .formula-box mjx-container[display="true"] svg { max-width: 100%; height: auto; }
 
   /* CALLOUTS */
   .callout { border-radius: 10px; padding: 20px 24px; margin: 28px 0; display: flex; gap: 16px; }
@@ -119,10 +113,76 @@
   .callout-text { font-size: 14px; color: var(--text-mid); line-height: 1.7; min-width: 0; }
   .callout-text strong { color: var(--text); }
 
-  /* IMAGES */
+  /* FIGURES - clickable images */
   .figure { margin: 32px 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg-card); }
-  .figure img { width: 100%; display: block; }
+  .figure-img-wrap {
+    display: block; cursor: zoom-in; position: relative; overflow: hidden;
+  }
+  .figure-img-wrap::after {
+    content: '⤢';
+    position: absolute; top: 10px; right: 12px;
+    font-size: 16px; color: var(--text);
+    background: rgba(13,17,23,0.7);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 7px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    font-family: sans-serif;
+    line-height: 1;
+  }
+  .figure-img-wrap:hover::after { opacity: 1; }
+  .figure-img-wrap img { width: 100%; display: block; transition: transform 0.25s; }
+  .figure-img-wrap:hover img { transform: scale(1.015); }
   .figure-caption { padding: 12px 20px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); font-style: italic; }
+
+  /* LIGHTBOX */
+  .lightbox {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.92);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .lightbox.open {
+    opacity: 1; pointer-events: all;
+    cursor: zoom-out;
+  }
+  .lightbox-img {
+    max-width: min(92vw, 1200px);
+    max-height: 90vh;
+    width: auto; height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    box-shadow: 0 32px 80px rgba(0,0,0,0.8);
+    transform: scale(0.96);
+    transition: transform 0.25s ease;
+    display: block;
+  }
+  .lightbox.open .lightbox-img { transform: scale(1); }
+  .lightbox-caption {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    font-family: var(--font-mono); font-size: 12px; color: var(--text-mid);
+    background: rgba(13,17,23,0.85);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 16px;
+    white-space: nowrap; max-width: 90vw;
+    overflow: hidden; text-overflow: ellipsis;
+    pointer-events: none;
+  }
+  .lightbox-close {
+    position: fixed; top: 20px; right: 24px;
+    width: 36px; height: 36px; border-radius: 8px;
+    background: rgba(13,17,23,0.85); border: 1px solid var(--border);
+    color: var(--text-mid); font-size: 18px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: color 0.15s, border-color 0.15s;
+    font-family: sans-serif;
+  }
+  .lightbox-close:hover { color: var(--text); border-color: var(--text-mid); }
 
   /* TABLE */
   .table-wrap { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 28px 0; }
@@ -192,6 +252,13 @@
 <body>
 <div class="grid-bg"></div>
 
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
+  <button class="lightbox-close" id="lightbox-close" aria-label="Close">✕</button>
+  <img class="lightbox-img" id="lightbox-img" src="" alt="">
+  <div class="lightbox-caption" id="lightbox-caption"></div>
+</div>
+
 <nav>
   <div class="nav-inner">
     <a href="index.html" class="nav-logo"><div class="dot"></div>Max Matthew</a>
@@ -238,13 +305,13 @@
 <div class="section-num">01 &nbsp;- MOTIVATION</div>
 <h2 id="why">Why I Built It - Learning by Building</h2>
 
-<p>I learn best by doing. Reading Milliken &amp; Milliken's - Race Car Vehicle Dynamics cover to cover is one thing; building a tool that produces meaningful numbers from first principles is something else entirely. When I took on the Vehicle Dynamics role at Team HARE CV for Formula Student, I faced a choice: jump straight into CAD and worry about the maths later, or develop a rigorous analytical model first that would make every geometric decision traceable and defensible.</p>
+<p>I learn best by doing. Reading Milliken &amp; Milliken's <em>Race Car Vehicle Dynamics</em> cover to cover is one thing; building a tool that produces meaningful numbers from first principles is something else entirely. When I took on the Vehicle Dynamics role at Team HARE CV for Formula Student, I faced a choice: jump straight into CAD and worry about the maths later, or develop a rigorous analytical model first that would make every geometric decision traceable and defensible.</p>
 
 <p>I chose the latter - and Excel was the deliberate choice. Not because dedicated tools like OptimumKinematics or MSC Adams don't exist, but because building it myself forced me to understand every relationship at the equation level before trusting any output. If the formula is wrong, the number is wrong. There is no abstraction layer to hide behind. It also keeps the whole team in the loop - anyone can open it, interrogate a number, and follow the cell references back to the source without installing anything.</p>
 
 <div class="callout blue">
   <div class="callout-icon">📚</div>
-  <div class="callout-text"><strong>Core references:</strong> Milliken &amp; Milliken - Race Car Vehicle Dynamics; Olley, Milliken &amp; Milliken - Chassis Design, Principles &amp; Analysis; Pacejka - Tyre and Vehicle Dynamics; Staniforth - Competition Car Suspension; Gillespie - Fundamentals of Vehicle Dynamics; Mitchell - Roll Centre Myths and Reality.</div>
+  <div class="callout-text"><strong>Core references:</strong> Milliken &amp; Milliken - <em>Race Car Vehicle Dynamics</em>; Olley, Milliken &amp; Milliken - <em>Chassis Design, Principles &amp; Analysis</em>; Pacejka - <em>Tyre and Vehicle Dynamics</em>; Staniforth - <em>Competition Car Suspension</em>; Gillespie - <em>Fundamentals of Vehicle Dynamics</em>; Mitchell - <em>Roll Centre Myths and Reality</em>.</div>
 </div>
 
 <!-- 02 -->
@@ -269,7 +336,9 @@
 </div>
 
 <div class="figure">
-  <img src="Suspension-Geometry-Calculator.png" alt="Dashboard tab showing hardpoint input matrix and vehicle parameter summary">
+  <a class="figure-img-wrap" href="#" data-caption="Fig. 1 - Dashboard tab: the single input layer. All 12 hardpoints defined in X, Y, Z coordinates referenced from wheel centre.">
+    <img src="Suspension-Geometry-Calculator.png" alt="Dashboard tab showing hardpoint input matrix and vehicle parameter summary">
+  </a>
   <div class="figure-caption">Fig. 1 - Dashboard tab: the single input layer. All 12 hardpoints defined in X, Y, Z coordinates referenced from wheel centre.</div>
 </div>
 
@@ -348,11 +417,11 @@
 <div class="callout red">
   <div class="callout-icon">⚠️</div>
   <div class="callout-text">
-    <strong>Roll centre myths and reality.</strong> The kinematic roll centre is frequently treated as a primary design target, but its physical significance is more limited than commonly assumed. As Mitchell writes in - Roll Centre Myths and Reality : - "The FAPs and the Force-Based Roll Center are important. The Kinematic Roll Center is of little value." 
+    <strong>Roll centre myths and reality.</strong> The kinematic roll centre is frequently treated as a primary design target, but its physical significance is more limited than commonly assumed. As Mitchell writes in <em>Roll Centre Myths and Reality</em>: <em>"The FAPs and the Force-Based Roll Center are important. The Kinematic Roll Center is of little value."</em>
     <br><br>
     The kinematic construction assumes rigid bodies, massless links, and no tyre compliance - none of which hold under dynamic loading. What actually governs the geometric component of lateral load transfer are the <strong>Force Application Points (FAPs)</strong> - the points through which suspension links physically apply lateral force to the sprung mass - which do not in general coincide with the kinematic roll centre. Under large lateral accelerations with compliant tyres, the force-based roll centre migrates substantially from its kinematic prediction.
     <br><br>
-    The value of tracking kinematic roll centre in this tool is therefore primarily comparative: understanding how geometry changes shift it - relative to a baseline  is useful for directional tuning. Treating its absolute position as a direct prediction of vehicle behaviour is not justified.
+    The value of tracking kinematic roll centre in this tool is therefore primarily comparative: understanding how geometry changes shift it <em>relative to a baseline</em> is useful for directional tuning. Treating its absolute position as a direct prediction of vehicle behaviour is not justified.
   </div>
 </div>
 
@@ -364,7 +433,9 @@
 </div>
 
 <div class="figure">
-  <img src="Front-View-Geometry.png" alt="Front view geometry diagram showing arm lines, instant centre and roll centre construction">
+  <a class="figure-img-wrap" href="#" data-caption="Fig. 2 - Front view geometry: instant centre construction and kinematic roll centre derivation. The chart auto-updates when hardpoints change.">
+    <img src="Front-View-Geometry.png" alt="Front view geometry diagram showing arm lines, instant centre and roll centre construction">
+  </a>
   <div class="figure-caption">Fig. 2 - Front view geometry: instant centre construction and kinematic roll centre derivation. The chart auto-updates when hardpoints change.</div>
 </div>
 
@@ -374,17 +445,25 @@
 
 <h3>Camber Change Rate</h3>
 
-<p>The camber change rate defines how much camber angle the wheel gains or loses per unit of wheel travel. It is directly derived from the FVSA length - a longer virtual swing arm produces a gentler camber change, a shorter arm produces aggressive camber gain:</p>
+<p>Camber is the angle the wheel makes with the vertical when viewed from the front. Negative camber - the top of the wheel tilted inward - increases the contact patch loading on the outer edge of the tyre and is beneficial for lateral grip in cornering. The optimal camber angle for maximum lateral force is typically a small negative value, and maintaining that angle dynamically through bump and roll is the goal of camber change rate tuning.</p>
+
+<p>The camber change rate (CCR) defines how many degrees of camber the wheel gains per millimetre of wheel travel. It is directly derived from the FVSA length - a longer virtual swing arm produces a gentler camber change, a shorter arm produces aggressive camber gain. Too little camber gain and the tyre rolls onto its outer shoulder in cornering, reducing the effective contact patch. Too much and the camber becomes excessive at the limits of travel, increasing tyre wear and reducing straight-line stability:</p>
 
 <div class="formula-box">
   <span class="formula-label">CAMBER CHANGE RATE</span>
   \[
     \text{CCR}\!\left[\tfrac{^\circ}{\text{mm}}\right] = \frac{180}{\pi \cdot L_\text{FVSA}}
   \]
-  <div class="formula-desc">Front: approximately 0.035–0.040°/mm. Rear is slightly higher due to the shorter FVSA, giving more camber recovery under roll.</div>
+  <div class="formula-desc">Front: approximately 0.035-0.040°/mm. Rear is slightly higher due to the shorter FVSA, giving more camber recovery under roll.</div>
 </div>
 
+<p>The rear axle deliberately has a higher CCR than the front. As the body rolls in a corner, the rear outer wheel needs to recover more camber relative to the road than the front - this partially compensates for the higher rear roll centre. If the rear camber gain were too gentle, the rear outer tyre would roll onto its shoulder under load, reducing rear grip and producing a tendency toward oversteer. The shorter rear FVSA is therefore a considered trade-off: more aggressive camber gain in exchange for the packaging constraint of a higher roll centre.</p>
+
 <h3>Kingpin Inclination (KPI) and Scrub Radius</h3>
+
+<p>The kingpin inclination (KPI) is the angle the steering axis makes with the vertical when viewed from the front of the car. It exists primarily for packaging reasons - tilting the steering axis inward at the top allows the upper hub point to sit further inboard, away from the wheel rim, without the lower point cutting into the brake disc or hub. KPI also contributes to a camber-restoring effect as the wheel is steered: as the wheel turns, KPI geometry causes the outer wheel to rise slightly, producing a small positive camber change that counteracts the negative camber induced by the steering angle. This self-centring behaviour adds to the returning feel of the steering.</p>
+
+<p>The scrub radius is the horizontal distance, measured at the road surface, between where the steering axis intersects the ground and the centre of the tyre contact patch. A positive scrub radius means the contact patch is outboard of the steering axis ground point. Under braking, a positive scrub radius creates a moment that tries to toe-in each front wheel, which is broadly stabilising. A negative scrub radius does the opposite - it is used deliberately in some FWD road cars to produce an outward toe moment under asymmetric braking, preventing the car from pulling toward the side with more grip. For a Formula Student car without power steering, a modest positive scrub radius is preferred for feel and directional stability, but it must be kept small enough to avoid heavy steering loads and shimmy sensitivity.</p>
 
 <p>The steering axis in the front view is defined by the upper and lower hub attachment points. KPI is the angle this axis makes with the vertical; the scrub radius is the lateral distance between where this axis meets the road and the tyre contact patch centre:</p>
 
@@ -449,7 +528,9 @@
 </div>
 
 <div class="figure">
-  <img src="Roll-Centre-Migration.png" alt="Chart showing front and rear roll centre height versus body roll angle">
+  <a class="figure-img-wrap" href="#" data-caption="Fig. 3 - Roll centre migration through the body roll sweep. The front centre descends gradually while the rear remains more stable - consistent with the longer front FVSA.">
+    <img src="Roll-Centre-Migration.png" alt="Chart showing front and rear roll centre height versus body roll angle">
+  </a>
   <div class="figure-caption">Fig. 3 - Roll centre migration through the body roll sweep. The front centre descends gradually while the rear remains more stable - consistent with the longer front FVSA.</div>
 </div>
 
@@ -520,7 +601,7 @@
 
 <p>Any discussion of lateral load transfer is incomplete without understanding <strong>tyre load sensitivity</strong>. It is arguably the most important single concept in vehicle dynamics set-up, and one of the most commonly glossed over.</p>
 
-<p>Unlike the approximately linear static spring rate, a tyre's lateral force generation is markedly - degressive  with vertical load. At low loads the relationship is roughly linear - double the load, approximately double the lateral force. But as load increases, the tyre saturates: the rate of lateral force gain diminishes. This non-linearity is described thoroughly by Pacejka and is observable in any FSAE tyre dataset. Where the spring rate data suggested linearity was a safe approximation, the lateral force data makes clear it is not.</p>
+<p>Unlike the approximately linear static spring rate, a tyre's lateral force generation is markedly <em>degressive</em> with vertical load. The simplest way to think about it is in terms of the tyre's coefficient of friction, or \(\mu\). As more vertical force is applied to the tyre, the <em>efficiency</em> of the tyre decreases - the effective \(\mu\) falls. The tyre produces more absolute lateral force, but proportionally less force per unit of vertical load. At low loads the relationship is roughly linear; as load increases, the tyre saturates and the rate of lateral force gain diminishes. This non-linearity is described thoroughly by Pacejka and is observable in any FSAE tyre dataset. Where the spring rate data suggested linearity was a safe approximation, the lateral force data makes clear it is not.</p>
 
 <div class="formula-box">
   <span class="formula-label">TYRE LOAD SENSITIVITY - CONCEPTUAL</span>
@@ -532,7 +613,9 @@
   <div class="formula-desc">The marginal lateral force gained by adding load decreases as total load increases. The tyre becomes less efficient at high loads - additional vertical load buys proportionally less lateral grip.</div>
 </div>
 
-<p>The consequence for vehicle set-up is direct and important: <strong>lateral load transfer reduces total axle grip</strong>. Consider two wheels on the same axle, each carrying \(F_0\) of vertical load at rest. In a corner, load transfers by \(\Delta F\) - the outer wheel sees \(F_0 + \Delta F\) and the inner sees \(F_0 - \Delta F\). The outer wheel gains some lateral force capacity, but due to the degressive curve, it gains - less  than the inner wheel loses. The axle's total lateral force potential decreases.</p>
+<p>The consequence for vehicle set-up is direct and important: <strong>lateral load transfer reduces total axle grip</strong>. Consider two wheels on the same axle, each carrying \(F_0\) of vertical load at rest. In a corner, load transfers by \(\Delta F\) - the outer wheel sees \(F_0 + \Delta F\) and the inner sees \(F_0 - \Delta F\). The outer wheel gains some lateral force capacity, but due to the falling \(\mu\), it gains <em>less</em> than the inner wheel loses. The axle's total lateral force potential decreases.</p>
+
+<p>This effect is not uniform across the car. Because the front and rear axles carry different static loads (set by the weight distribution) and experience different amounts of lateral load transfer (set by their respective roll stiffness share and roll centre heights), the reduction in effective \(\mu\) happens at different rates front to rear. An axle that is already heavily loaded statically will reach the degressive region of the tyre curve sooner under lateral load transfer. This means the relative efficiency of the front and rear axles shifts during cornering, directly affecting the balance of the car - and it is one reason why weight distribution, roll stiffness split, and roll centre heights all interact to set the final understeer or oversteer character of the vehicle.</p>
 
 <div class="callout blue">
   <div class="callout-icon">💡</div>
@@ -543,8 +626,12 @@
 
 <p>At approximately 1.3&nbsp;G lateral, the front outer wheel is carrying roughly <strong>2.4× its static load</strong>, and the inner is contributing relatively little lateral force. The linear spring rate model is still a valid input to the ride frequency and wheel rate calculations - but it is the non-linear lateral force behaviour that ultimately sets the grip limits at each axle, and that is where the load sensitivity picture matters most.</p>
 
+<p>The full interaction between load sensitivity, cornering stiffness, mechanical balance, and the understeer gradient is a topic that deserves its own treatment - I intend to write a dedicated article covering these in detail in the future.</p>
+
 <div class="figure">
-  <img src="Lateral-Vs-Vertical.jpg" alt="Chart of tyre lateral force versus vertical load showing degressive relationship">
+  <a class="figure-img-wrap" href="#" data-caption="Fig. 4 - Tyre load sensitivity: the degressive Fy–Fz curve means the outer wheel's gain in lateral capacity is always less than the inner wheel's loss. Total axle grip falls with increasing load transfer.">
+    <img src="Lateral-Vs-Vertical.jpg" alt="Chart of tyre lateral force versus vertical load showing degressive relationship">
+  </a>
   <div class="figure-caption">Fig. 4 - Tyre load sensitivity: the degressive \(F_y\)–\(F_z\) curve means the outer wheel's gain in lateral capacity is always less than the inner wheel's loss. Total axle grip falls with increasing load transfer.</div>
 </div>
 
@@ -552,7 +639,7 @@
 <div class="section-num" style="margin-top:56px">10 &nbsp;- LOAD TRANSFER IN DETAIL</div>
 <h2 id="weight-transfer">Lateral Load Transfer - Decomposed</h2>
 
-<p>With tyre load sensitivity in mind, the Weight Transfer sheet becomes more than a force accounting exercise. The goal is not just to know how much load transfers - it is to understand - through which paths  it goes, and what that means for grip balance.</p>
+<p>With tyre load sensitivity in mind, the Weight Transfer sheet becomes more than a force accounting exercise. The goal is not just to know how much load transfers - it is to understand <em>through which paths</em> it goes, and what that means for grip balance.</p>
 
 <h3>The Three Paths of Lateral Load Transfer</h3>
 
@@ -689,7 +776,7 @@
 
 <div class="callout blue">
   <div class="callout-icon">🔗</div>
-  <div class="callout-text"><strong>This calculator is deployed on Team HARE CV and will be used to validate the suspension system ahead of the IMechE Formula Student UK event.</strong> If you're working on something similar and want to discuss the methodology, reach out via <a href="https://www.linkedin.com/in/maxmatthew/">LinkedIn</a> or <a href="mailto:max@maxmatthew.co.uk">Email</a>.</div>
+  <div class="callout-text"><strong>This calculator is deployed on Team HARE CV and will be used to validate the suspension system ahead of the IMechE Formula Student UK event.</strong> If you're working on something similar and want to discuss the methodology, reach out via <a href="https://www.linkedin.com/in/maxmatthew/">LinkedIn</a> or <a href="/cdn-cgi/l/email-protection#f9949881b994988194988d8d919c8ed79a96d78c92">Email</a>.</div>
 </div>
 
 </article>
@@ -716,21 +803,21 @@
   <hr class="sidebar-divider">
   <div class="sidebar-section-title">KEY REFERENCES</div>
   <ul class="sidebar-list">
-    <li>- Race Car Vehicle Dynamics <br>Milliken &amp; Milliken</li>
-    <li>- Chassis Design <br>Olley, Milliken &amp; Milliken</li>
-    <li>- Tyre and Vehicle Dynamics <br>Hans B. Pacejka</li>
-    <li>- Roll Centre Myths and Reality <br>Mitchell</li>
-    <li>- Competition Car Suspension <br>Allan Staniforth</li>
-    <li>- Fundamentals of Vehicle Dynamics <br>Thomas Gillespie</li>
+    <li><em>Race Car Vehicle Dynamics</em><br>Milliken &amp; Milliken</li>
+    <li><em>Chassis Design</em><br>Olley, Milliken &amp; Milliken</li>
+    <li><em>Tyre and Vehicle Dynamics</em><br>Hans B. Pacejka</li>
+    <li><em>Roll Centre Myths and Reality</em><br>Mitchell</li>
+    <li><em>Competition Car Suspension</em><br>Allan Staniforth</li>
+    <li><em>Fundamentals of Vehicle Dynamics</em><br>Thomas Gillespie</li>
   </ul>
   <hr class="sidebar-divider">
   <div class="sidebar-section-title">TOOL SPECS</div>
   <ul class="sidebar-list">
-    <li>Platform: - Microsoft Excel </li>
-    <li>Sheets: - 15 interconnected </li>
-    <li>Wishbone error: - &lt;0.05% vs CAD </li>
-    <li>Regression R²: - ≈0.97 </li>
-    <li>Status: - Deployed - Team HARE CV </li>
+    <li>Platform: <em>Microsoft Excel</em></li>
+    <li>Sheets: <em>15 interconnected</em></li>
+    <li>Wishbone error: <em>&lt;0.05% vs CAD</em></li>
+    <li>Regression R²: <em>≈0.97</em></li>
+    <li>Status: <em>Deployed - Team HARE CV</em></li>
   </ul>
 </aside>
 
@@ -747,7 +834,8 @@
   </div>
 </footer>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ── TOC scroll spy ──────────────────────────────────────────────
 const headings = document.querySelectorAll('.prose h2[id]');
 const tocLinks = document.querySelectorAll('.toc-list a');
 const io = new IntersectionObserver(entries => {
@@ -760,6 +848,36 @@ const io = new IntersectionObserver(entries => {
   });
 }, { rootMargin: '-15% 0px -75% 0px' });
 headings.forEach(h => io.observe(h));
-</script>
-</body>
-</html>
+
+// ── Lightbox ────────────────────────────────────────────────────
+const lightbox      = document.getElementById('lightbox');
+const lightboxImg   = document.getElementById('lightbox-img');
+const lightboxCap   = document.getElementById('lightbox-caption');
+const lightboxClose = document.getElementById('lightbox-close');
+
+function openLightbox(src, alt, caption) {
+  lightboxImg.src = src;
+  lightboxImg.alt = alt;
+  lightboxCap.textContent = caption;
+  lightbox.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  lightbox.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Attach click to every .figure-img-wrap
+document.querySelectorAll('.figure-img-wrap').forEach(wrap => {
+  wrap.addEventListener('click', e => {
+    e.preventDefault();
+    const img     = wrap.querySelector('img');
+    const caption = wrap.dataset.caption || '';
+    openLightbox(img.src, img.alt, caption);
+  });
+});
+
+// Close on backdrop click, close button, or Escape
+lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+lightboxClose.addEve
