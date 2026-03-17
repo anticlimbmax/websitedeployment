@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How I Built a Real-Time Suspension Geometry Calculator in Excel — Max Matthew</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script>
+  MathJax = {
+    tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
+    options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] },
+    svg: { scale: 0.95, minScale: 0.5, fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<style>
+  :root {
+    --bg: #0D1117;
+    --bg-card: #161B22;
+    --bg-raised: #1C2333;
+    --blue: #1A6AFF;
+    --blue-dim: rgba(26,106,255,0.12);
+    --red-dim: rgba(230,57,70,0.12);
+    --text: #E6EDF3;
+    --text-mid: #8B949E;
+    --text-dim: #484F58;
+    --border: #21262D;
+    --border-hover: #30363D;
+    --font-ui: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-ui); line-height: 1.6; overflow-x: hidden; }
+
+  .grid-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: linear-gradient(rgba(26,106,255,0.025) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(26,106,255,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100; height: 60px;
+    background: rgba(13,17,23,0.85); backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 40px;
+  }
+  .nav-inner { max-width: 1200px; width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+  .nav-logo { font-size: 15px; font-weight: 700; letter-spacing: 0.08em; color: var(--text); display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .nav-logo .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a { color: var(--text-mid); text-decoration: none; font-size: 13px; font-weight: 500; letter-spacing: 0.04em; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-back { display: flex; align-items: center; gap: 8px; color: var(--text-mid); text-decoration: none; font-size: 13px; font-weight: 500; transition: color 0.2s; }
+  .nav-back:hover { color: var(--blue); }
+  .nav-back svg { width: 14px; height: 14px; }
+
+  /* HERO */
+  .article-hero { padding: 120px 40px 60px; position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; border-bottom: 1px solid var(--border); }
+  .article-hero-meta { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .article-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; padding: 4px 12px; border-radius: 100px; background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(26,106,255,0.3); }
+  .article-meta-item { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); }
+  .article-hero h1 { font-size: clamp(28px, 5vw, 56px); font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px; }
+  .article-hero h1 .accent { color: var(--blue); }
+  .article-hero .lead { font-size: 17px; color: var(--text-mid); max-width: 700px; line-height: 1.75; font-weight: 400; margin-bottom: 40px; }
+  .article-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+  .article-stat { display: flex; flex-direction: column; gap: 4px; }
+  .article-stat .num { font-size: 22px; font-weight: 800; color: var(--blue); }
+  .article-stat .lbl { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: 0.05em; }
+
+  /* LAYOUT */
+  .article-layout { max-width: 1200px; margin: 0 auto; padding: 60px 40px; display: grid; grid-template-columns: 1fr 280px; gap: 60px; align-items: start; position: relative; z-index: 1; }
+  .article-body { min-width: 0; overflow: visible; }
+  .article-sidebar { position: sticky; top: 80px; }
+
+  /* PROSE */
+  .prose h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 56px 0 16px; color: var(--text); line-height: 1.2; padding-top: 16px; border-top: 1px solid var(--border); }
+  .prose h2:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+  .prose h3 { font-size: 17px; font-weight: 700; margin: 32px 0 12px; color: var(--text); display: flex; align-items: center; gap: 10px; }
+  .prose h3::before { content: ''; display: inline-block; width: 3px; height: 16px; background: var(--blue); border-radius: 2px; flex-shrink: 0; }
+  .prose p { color: var(--text-mid); font-size: 15px; line-height: 1.85; margin-bottom: 20px; }
+  .prose strong { color: var(--text); font-weight: 700; }
+  .prose a { color: var(--blue); text-decoration: none; }
+  .prose a:hover { text-decoration: underline; }
+  .prose ul, .prose ol { color: var(--text-mid); font-size: 15px; line-height: 1.85; margin-bottom: 20px; padding-left: 0; list-style: none; }
+  .prose ul li, .prose ol li { padding: 4px 0 4px 24px; position: relative; }
+  .prose ul li::before { content: '→'; position: absolute; left: 0; color: var(--blue); font-family: var(--font-mono); font-size: 12px; }
+  .prose ol { counter-reset: item; }
+  .prose ol li { counter-increment: item; }
+  .prose ol li::before { content: counter(item, decimal-leading-zero); position: absolute; left: 0; color: var(--blue); font-family: var(--font-mono); font-size: 11px; top: 6px; }
+
+  /* FORMULA BOXES */
+  .formula-box {
+    background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--blue);
+    border-radius: 8px; padding: 20px 24px; margin: 24px 0;
+    overflow: visible; /* never clip equations */
+  }
+  .formula-box .formula-label { font-family: var(--font-mono); font-size: 10px; color: var(--blue); letter-spacing: 0.12em; margin-bottom: 12px; display: block; }
+  .formula-box .formula-desc { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); margin-top: 10px; line-height: 1.6; }
+  /* SVG MathJax equations: scale down on narrow screens, never clip */
+  .formula-box mjx-container[display="true"] {
+    display: block; overflow-x: auto; overflow-y: visible;
+    max-width: 100%; padding-bottom: 4px;
+  }
+  .formula-box mjx-container[display="true"] svg {
+    max-width: 100%; height: auto;
+  }
+
+  /* CALLOUTS */
+  .callout { border-radius: 10px; padding: 20px 24px; margin: 28px 0; display: flex; gap: 16px; }
+  .callout.blue { background: var(--blue-dim); border: 1px solid rgba(26,106,255,0.2); }
+  .callout.green { background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.2); }
+  .callout.yellow { background: rgba(240,180,0,0.08); border: 1px solid rgba(240,180,0,0.2); }
+  .callout.red { background: var(--red-dim); border: 1px solid rgba(230,57,70,0.25); }
+  .callout-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+  .callout-text { font-size: 14px; color: var(--text-mid); line-height: 1.7; min-width: 0; }
+  .callout-text strong { color: var(--text); }
+
+  /* IMAGES */
+  .figure { margin: 32px 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg-card); }
+  .figure img { width: 100%; display: block; }
+  .figure-caption { padding: 12px 20px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); font-style: italic; }
+
+  /* TABLE */
+  .table-wrap { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 28px 0; }
+  .data-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 12px; }
+  .data-table th { background: var(--bg-raised); color: var(--text-mid); font-weight: 500; padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border); letter-spacing: 0.05em; }
+  .data-table td { padding: 10px 16px; border-bottom: 1px solid rgba(33,38,45,0.6); color: var(--text-mid); vertical-align: top; }
+  .data-table td:first-child { color: var(--text); font-weight: 500; }
+  .data-table .value { color: var(--blue); }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(26,106,255,0.04); }
+
+  /* SHEET GRID */
+  .sheet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 28px 0; }
+  .sheet-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; transition: border-color 0.2s; }
+  .sheet-card:hover { border-color: var(--blue); }
+  .sheet-card .sheet-name { font-family: var(--font-mono); font-size: 11px; color: var(--blue); letter-spacing: 0.08em; margin-bottom: 6px; }
+  .sheet-card .sheet-desc { font-size: 13px; color: var(--text-mid); line-height: 1.6; }
+
+  /* METRIC STRIP */
+  .metric-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 28px 0; }
+  .metric-item { background: var(--bg-card); padding: 16px; transition: background 0.2s; }
+  .metric-item:hover { background: var(--bg-raised); }
+  .metric-item .m-val { font-size: 20px; font-weight: 800; color: var(--blue); display: block; margin-bottom: 4px; }
+  .metric-item .m-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); line-height: 1.4; }
+
+  /* SECTION NUMBER */
+  .section-num { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: 11px; color: var(--blue); letter-spacing: 0.12em; margin-bottom: 8px; }
+  .section-num::after { content: ''; width: 40px; height: 1px; background: var(--blue-dim); }
+
+  /* SIDEBAR */
+  .sidebar-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.12em; margin-bottom: 16px; }
+  .toc-list { list-style: none; }
+  .toc-list li { margin-bottom: 2px; }
+  .toc-list a { display: block; padding: 7px 12px; font-size: 13px; color: var(--text-dim); text-decoration: none; border-radius: 6px; border-left: 2px solid transparent; transition: all 0.15s; line-height: 1.4; }
+  .toc-list a:hover, .toc-list a.active { color: var(--blue); background: var(--blue-dim); border-left-color: var(--blue); }
+  .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .sidebar-section-title { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.12em; margin-bottom: 12px; }
+  .sidebar-list { list-style: none; }
+  .sidebar-list li { font-size: 12px; color: var(--text-dim); padding: 5px 0; border-bottom: 1px solid rgba(33,38,45,0.5); line-height: 1.5; }
+  .sidebar-list li:last-child { border-bottom: none; }
+  .sidebar-list em { color: var(--text-mid); font-style: normal; }
+
+  /* FOOTER */
+  footer { border-top: 1px solid var(--border); padding: 32px 40px; background: var(--bg); position: relative; z-index: 1; }
+  .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+  .footer-left { font-size: 13px; color: var(--text-dim); font-family: var(--font-mono); }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a { font-size: 12px; color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--blue); }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    nav { padding: 0 20px; }
+    .nav-links { display: none; }
+    .article-hero { padding: 100px 20px 40px; }
+    .article-layout { grid-template-columns: 1fr; padding: 40px 20px; }
+    .article-sidebar { display: none; }
+    .sheet-grid { grid-template-columns: 1fr; }
+    .metric-strip { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .metric-strip { grid-template-columns: 1fr 1fr; }
+    .article-stats { gap: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo"><div class="dot"></div>Max Matthew</a>
+    <div class="nav-links">
+      <a href="index.html#skills">Skills</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="index.html#education">Education</a>
+      <a href="index.html#projects">Projects</a>
+      <a href="index.html#insights">Insights</a>
+      <a href="index.html#contact">Contact</a>
+    </div>
+    <a href="index.html#insights" class="nav-back">
+      <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 3L5 7L9 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back to Insights
+    </a>
+  </div>
+</nav>
+
+<div class="article-hero">
+  <div class="article-hero-meta">
+    <span class="article-tag">TECHNICAL</span>
+    <span class="article-meta-item">March 2026</span>
+    <span class="article-meta-item">·</span>
+    <span class="article-meta-item">~15 min read</span>
+    <span class="article-meta-item">·</span>
+    <span class="article-meta-item">Team HARE CV · Formula Student</span>
+  </div>
+  <h1>How I Built a <span class="accent">Real-Time Suspension<br>Geometry Calculator</span> in Excel</h1>
+  <p class="lead">Walking through the full architecture of a double-wishbone suspension geometry tool — from 3D hardpoint matrices to instant centre computation, roll centre geometry, tyre modelling, load transfer analysis, and ARB sizing. All without a line of Python.</p>
+  <div class="article-stats">
+    <div class="article-stat"><span class="num">15</span><span class="lbl">Interconnected Sheets</span></div>
+    <div class="article-stat"><span class="num">500+</span><span class="lbl">Roll sweep data rows</span></div>
+    <div class="article-stat"><span class="num">&lt;0.05%</span><span class="lbl">Wishbone error vs CAD</span></div>
+    <div class="article-stat"><span class="num">R²≈0.97</span><span class="lbl">Tyre regression accuracy</span></div>
+  </div>
+</div>
+
+<div class="article-layout">
+<article class="article-body prose">
+
+<!-- 01 -->
+<div class="section-num">01 &nbsp;— MOTIVATION</div>
+<h2 id="why">Why I Built It — Learning by Building</h2>
+
+<p>I learn best by doing. Reading Milliken &amp; Milliken's <em>Race Car Vehicle Dynamics</em> cover to cover is one thing; building a tool that produces meaningful numbers from first principles is something else entirely. When I took on the Vehicle Dynamics role at Team HARE CV for Formula Student, I faced a choice: jump straight into CAD and worry about the maths later, or develop a rigorous analytical model first that would make every geometric decision traceable and defensible.</p>
+
+<p>I chose the latter — and Excel was the deliberate choice. Not because dedicated tools like OptimumKinematics or MSC Adams don't exist, but because building it myself forced me to understand every relationship at the equation level before trusting any output. If the formula is wrong, the number is wrong. There is no abstraction layer to hide behind. It also keeps the whole team in the loop — anyone can open it, interrogate a number, and follow the cell references back to the source without installing anything.</p>
+
+<div class="callout blue">
+  <div class="callout-icon">📚</div>
+  <div class="callout-text"><strong>Core references:</strong> Milliken &amp; Milliken — <em>Race Car Vehicle Dynamics</em>; Olley, Milliken &amp; Milliken — <em>Chassis Design, Principles &amp; Analysis</em>; Pacejka — <em>Tyre and Vehicle Dynamics</em>; Staniforth — <em>Competition Car Suspension</em>; Gillespie — <em>Fundamentals of Vehicle Dynamics</em>; Mitchell — <em>Roll Centre Myths and Reality</em>.</div>
+</div>
+
+<!-- 02 -->
+<div class="section-num" style="margin-top:56px">02 &nbsp;— ARCHITECTURE</div>
+<h2 id="architecture">Workbook Architecture — 15 Sheets, One Source of Truth</h2>
+
+<p>The workbook is structured around a single master input layer that propagates downstream. The guiding principle: <strong>no number should be typed in twice</strong>. Every sheet references the Dashboard; if a hardpoint changes, every output — roll centre, camber curve, spring rate, ARB diameter — updates instantly.</p>
+
+<div class="sheet-grid">
+  <div class="sheet-card"><div class="sheet-name">DASHBOARD</div><div class="sheet-desc">All 12 hardpoints, vehicle mass, CoG height, tyre pressures, track widths, wheelbase, and static camber. Single input layer for the entire workbook.</div></div>
+  <div class="sheet-card"><div class="sheet-name">SETUPS</div><div class="sheet-desc">Stores named geometry configurations — previous year baseline and new design — with a delta comparison table showing what changed and by how much.</div></div>
+  <div class="sheet-card"><div class="sheet-name">CALCS</div><div class="sheet-desc">Static geometry engine. Computes front-view and side-view instant centres, FVSA lengths, camber change rates, KPI, scrub radius, roll centres, and anti-dive/squat percentages.</div></div>
+  <div class="sheet-card"><div class="sheet-name">FRONT ROLL / REAR ROLL</div><div class="sheet-desc">Dynamic sweep across the full roll envelope in small increments, tracking every hardpoint through body roll using trigonometric rotation matrices.</div></div>
+  <div class="sheet-card"><div class="sheet-name">FRONT &amp; REAR JOUNCE</div><div class="sheet-desc">Wheel travel analysis — jounce and droop behaviour, camber gain in bump, and FVSA length variation through the stroke.</div></div>
+  <div class="sheet-card"><div class="sheet-name">WISHBONES</div><div class="sheet-desc">Calculates 3D wishbone lengths from hardpoint coordinates and validates them against CAD measurements. A critical geometric consistency check.</div></div>
+  <div class="sheet-card"><div class="sheet-name">TYRE</div><div class="sheet-desc">Generates the tyre cross-section profile. Models contact patch deformation, static vertical deflection under load, and contact patch centre location.</div></div>
+  <div class="sheet-card"><div class="sheet-name">TYRE REGRESSION MODEL</div><div class="sheet-desc">Multi-variable linear regression mapping tyre pressure and wheel load to static spring rate, derived from manufacturer data.</div></div>
+  <div class="sheet-card"><div class="sheet-name">WEIGHT TRANSFER</div><div class="sheet-desc">Longitudinal and lateral load transfer under acceleration, braking, and cornering. Includes geometric and elastic components, tilt test check, and per-wheel force outputs.</div></div>
+  <div class="sheet-card"><div class="sheet-name">SPRINGS</div><div class="sheet-desc">Ride frequency targets, motion ratio calculation via rocker geometry, wheel travel limits, spring rate selection, and roll stiffness contribution from springs alone.</div></div>
+  <div class="sheet-card"><div class="sheet-name">ROCKER GEOMETRY</div><div class="sheet-desc">Computes front and rear motion ratios from rocker arm lengths, including the ARB motion ratio for both axles.</div></div>
+  <div class="sheet-card"><div class="sheet-name">ARB</div><div class="sheet-desc">Anti-roll bar torsional stiffness solver. Given required roll stiffness, ARB motion ratio, material properties and geometry — outputs required bar diameter for solid or hollow bars.</div></div>
+</div>
+
+<div class="figure">
+  <img src="Suspension-Geometry-Calculator.png" alt="Dashboard tab showing hardpoint input matrix and vehicle parameter summary">
+  <div class="figure-caption">Fig. 1 — Dashboard tab: the single input layer. All 12 hardpoints defined in X, Y, Z coordinates referenced from wheel centre.</div>
+</div>
+
+<!-- 03 -->
+<div class="section-num" style="margin-top:56px">03 &nbsp;— FOUNDATIONS</div>
+<h2 id="coordinates">Coordinate System &amp; Hardpoint Matrix</h2>
+
+<p>Before writing a single formula, I established a consistent coordinate convention:</p>
+<ul>
+  <li><strong>X:</strong> longitudinal axis — positive forward from wheel centre</li>
+  <li><strong>Y:</strong> lateral axis — positive outboard (away from vehicle centreline)</li>
+  <li><strong>Z:</strong> vertical axis — positive upward, with \(Z = 0\) at the road surface</li>
+</ul>
+
+<p>Each of the 12 hardpoints is defined in this space — six per axle, covering the upper arm chassis front and rear attachment, upper hub, lower arm chassis front and rear, and lower hub. Approximate values for the front axle sit in the region of: upper chassis points at around \(Y \approx 275\,\text{mm}\) outboard and \(Z \approx 250\,\text{mm}\), with lower chassis points at \(Y \approx 225\,\text{mm}\) and \(Z \approx 115\,\text{mm}\).</p>
+
+<p>The rear geometry follows the same six-point structure. One notable packaging compromise at the rear: the lower wishbone chassis attachment points sit higher than would be ideal from a pure geometry standpoint — closer to \(Z \approx 128\,\text{mm}\) rather than the lower values that would produce more favourable arm angles and a lower rear roll centre. This was a direct consequence of packaging constraints around the rear drivetrain and differential mounting. The pick-up points simply could not move downward without conflicting with structural and powertrain elements. This is one of many real-world compromises that distinguish a physical design from an analytically optimal one, and it is why the rear roll centre sits somewhat higher relative to the front than might otherwise be chosen.</p>
+
+<div class="callout yellow">
+  <div class="callout-icon">⚙️</div>
+  <div class="callout-text"><strong>Coordinate convention discipline matters.</strong> A common error in suspension geometry tools is inconsistent sign conventions between left and right sides. The calculator explicitly mirrors Y-coordinates for the right side, and all gradient calculations account for this sign flip to ensure roll centre computations are symmetric about the centreline.</div>
+</div>
+
+<!-- 04 -->
+<div class="section-num" style="margin-top:56px">04 &nbsp;— GEOMETRY ENGINE</div>
+<h2 id="instant-centres">Instant Centres and Roll Centre Height</h2>
+
+<p>The fundamental building block of front-view geometry is the <strong>Front View Swing Arm (FVSA)</strong> — the virtual arm connecting the wheel hub to the instant centre formed by the extended lines of the upper and lower wishbone arms, projected onto the YZ plane. This is the foundation for understanding camber behaviour and the geometric contribution to lateral force generation.</p>
+
+<h3>Line Gradient Computation</h3>
+
+<p>For each wishbone, the gradient of the arm line in the front view is computed from the chassis average and hub attachment points. For the upper arm:</p>
+
+<div class="formula-box">
+  <span class="formula-label">UPPER ARM GRADIENT — FRONT VIEW</span>
+  \[
+    m_\text{upper} = \frac{z_\text{hub} - z_\text{chassis,avg}}{y_\text{hub} - y_\text{chassis,avg}}
+  \]
+  <div class="formula-desc">The average chassis attachment point is used because the front-view projection collapses the longitudinal dimension — only Y and Z are relevant here.</div>
+</div>
+
+<p>The same calculation is performed for the lower arm. This is repeated for all four arms at both axles.</p>
+
+<h3>Instant Centre Location</h3>
+
+<p>The instant centre for each side is the intersection of the two arm line extensions. Using point-gradient form, this reduces to a closed-form simultaneous equation — no iteration required:</p>
+
+<div class="formula-box">
+  <span class="formula-label">FRONT VIEW INSTANT CENTRE</span>
+  \[
+    Y_\text{IC} = \frac{z_\text{lower,hub} - z_\text{upper,hub} + m_\text{upper}\,y_\text{upper,hub} - m_\text{lower}\,y_\text{lower,hub}}{m_\text{upper} - m_\text{lower}}
+  \]
+  \[
+    Z_\text{IC} = z_\text{lower,hub} + m_\text{lower}\!\left(Y_\text{IC} - y_\text{lower,hub}\right)
+  \]
+</div>
+
+<p>The front FVSA length — from the wheel contact patch to the instant centre — is approximately <strong>1,500&nbsp;mm</strong>. The rear is shorter at around <strong>1,050&nbsp;mm</strong>, producing a higher camber gain rate at the rear axle through roll — intentional, and discussed further in the roll sweep section.</p>
+
+<h3>The Kinematic Roll Centre — and Why It's Less Useful Than It Looks</h3>
+
+<p>The kinematic roll centre is found by constructing a line from each tyre contact patch to its respective instant centre, and noting where the two lines cross at the vehicle centreline:</p>
+
+<div class="formula-box">
+  <span class="formula-label">ROLL CENTRE HEIGHT — KINEMATIC CONSTRUCTION</span>
+  \[
+    m_\text{RC} = \frac{Z_\text{IC}}{Y_\text{IC} - Y_\text{contact}}
+    \qquad
+    Z_\text{RC} = -\,m_\text{RC} \cdot Y_\text{contact}
+  \]
+  <div class="formula-desc">Where \(Y_\text{contact}\) is the lateral position of the tyre contact patch centre. The roll centre sits at \(Z_\text{RC}\) on the vehicle centreline.</div>
+</div>
+
+<p>The current geometry produces an approximate front roll centre of <strong>~45&nbsp;mm</strong> and a rear of <strong>~105&nbsp;mm</strong>. It is worth being direct, however, about the limitations of these numbers and how much weight they should carry in design decisions.</p>
+
+<div class="callout red">
+  <div class="callout-icon">⚠️</div>
+  <div class="callout-text">
+    <strong>Roll centre myths and reality.</strong> The kinematic roll centre is frequently treated as a primary design target, but its physical significance is more limited than commonly assumed. As Mitchell writes in <em>Roll Centre Myths and Reality</em>: <em>"The FAPs and the Force-Based Roll Center are important. The Kinematic Roll Center is of little value."</em>
+    <br><br>
+    The kinematic construction assumes rigid bodies, massless links, and no tyre compliance — none of which hold under dynamic loading. What actually governs the geometric component of lateral load transfer are the <strong>Force Application Points (FAPs)</strong> — the points through which suspension links physically apply lateral force to the sprung mass — which do not in general coincide with the kinematic roll centre. Under large lateral accelerations with compliant tyres, the force-based roll centre migrates substantially from its kinematic prediction.
+    <br><br>
+    The value of tracking kinematic roll centre in this tool is therefore primarily comparative: understanding how geometry changes shift it <em>relative to a baseline</em> is useful for directional tuning. Treating its absolute position as a direct prediction of vehicle behaviour is not justified.
+  </div>
+</div>
+
+<div class="metric-strip">
+  <div class="metric-item"><span class="m-val">~45 mm</span><span class="m-label">Approx. front roll centre height</span></div>
+  <div class="metric-item"><span class="m-val">~105 mm</span><span class="m-label">Approx. rear roll centre height</span></div>
+  <div class="metric-item"><span class="m-val">~1,500 mm</span><span class="m-label">Front FVSA length</span></div>
+  <div class="metric-item"><span class="m-val">~1,050 mm</span><span class="m-label">Rear FVSA length</span></div>
+</div>
+
+<div class="figure">
+  <img src="Front-View-Geometry.png" alt="Front view geometry diagram showing arm lines, instant centre and roll centre construction">
+  <div class="figure-caption">Fig. 2 — Front view geometry: instant centre construction and kinematic roll centre derivation. The chart auto-updates when hardpoints change.</div>
+</div>
+
+<!-- 05 -->
+<div class="section-num" style="margin-top:56px">05 &nbsp;— CAMBER &amp; STEERING GEOMETRY</div>
+<h2 id="camber">Camber Change Rate, KPI, and Scrub Radius</h2>
+
+<h3>Camber Change Rate</h3>
+
+<p>The camber change rate defines how much camber angle the wheel gains or loses per unit of wheel travel. It is directly derived from the FVSA length — a longer virtual swing arm produces a gentler camber change, a shorter arm produces aggressive camber gain:</p>
+
+<div class="formula-box">
+  <span class="formula-label">CAMBER CHANGE RATE</span>
+  \[
+    \text{CCR}\!\left[\tfrac{^\circ}{\text{mm}}\right] = \frac{180}{\pi \cdot L_\text{FVSA}}
+  \]
+  <div class="formula-desc">Front: approximately 0.035–0.040°/mm. Rear is slightly higher due to the shorter FVSA, giving more camber recovery under roll.</div>
+</div>
+
+<h3>Kingpin Inclination (KPI) and Scrub Radius</h3>
+
+<p>The steering axis in the front view is defined by the upper and lower hub attachment points. KPI is the angle this axis makes with the vertical; the scrub radius is the lateral distance between where this axis meets the road and the tyre contact patch centre:</p>
+
+<div class="formula-box">
+  <span class="formula-label">KPI ANGLE AND SCRUB RADIUS</span>
+  \[
+    \text{KPI} = \arctan\!\left(\frac{y_\text{upper,hub} - y_\text{lower,hub}}{z_\text{upper,hub} - z_\text{lower,hub}}\right)
+  \]
+  \[
+    Y_\text{KPI,ground} = y_\text{lower,hub} - z_\text{lower,hub} \cdot \frac{y_\text{upper,hub} - y_\text{lower,hub}}{z_\text{upper,hub} - z_\text{lower,hub}}
+  \]
+  \[
+    r_\text{scrub} = Y_\text{contact} - Y_\text{KPI,ground}
+  \]
+</div>
+
+<p>The front design produces a KPI of approximately <strong>5.8°</strong> and a scrub radius in the region of <strong>30–35&nbsp;mm</strong>. Staniforth notes that a positive scrub radius introduces a self-centring moment under braking, while excessive values introduce shimmy sensitivity — the figure here sits comfortably within the accepted range for a Formula Student car without power steering.</p>
+
+<!-- 06 -->
+<div class="section-num" style="margin-top:56px">06 &nbsp;— SIDE VIEW GEOMETRY</div>
+<h2 id="antidive">Anti-Dive and Anti-Squat Percentages</h2>
+
+<p>Side-view geometry governs how the suspension reacts to longitudinal load transfer under braking (anti-dive) and acceleration (anti-squat). A 100% anti-dive geometry theoretically eliminates front suspension compression under braking — the geometry carries the pitching moment through the links rather than the springs. In practice, high anti-dive percentages cause harshness and deteriorate steering feel by coupling braking forces directly into the geometry, so the design point sits well below 100%.</p>
+
+<div class="formula-box">
+  <span class="formula-label">ANTI-DIVE PERCENTAGE — FRONT AXLE</span>
+  \[
+    Z_\text{SVSA@CoG} = Z_\text{contact} + m_\text{SVSA}\!\left(X_\text{CoG} - X_\text{contact}\right)
+  \]
+  \[
+    \text{Anti-dive}\,[\%] = \frac{Z_\text{SVSA@CoG}}{Z_\text{CoG}} \times f_\text{brake}
+  \]
+  <div class="formula-desc">Where \(m_\text{SVSA}\) is the side-view swing arm gradient from contact patch to instant centre, and \(f_\text{brake}\) is the proportion of braking force at that axle.</div>
+</div>
+
+<p>The current geometry gives approximately <strong>28–30% anti-dive</strong> at the front and a similar figure for anti-squat at the rear. Caster angle comes out at approximately <strong>5.8°</strong>, providing the trail and returnability expected for this application.</p>
+
+<!-- 07 -->
+<div class="section-num" style="margin-top:56px">07 &nbsp;— DYNAMIC SWEEP</div>
+<h2 id="roll-sweep">Dynamic Roll Sweep</h2>
+
+<p>The static geometry tells you what the suspension looks like at rest. The dynamic sweep tells you how it behaves. The Front Roll and Rear Roll sheets sweep body roll from 0° to approximately 5–6° in small increments, tracking every key geometric parameter continuously.</p>
+
+<p>At each roll step, body rotation is applied to all chassis-mounted hardpoints using a 2D rotation matrix about the longitudinal axis:</p>
+
+<div class="formula-box">
+  <span class="formula-label">ROTATION MATRIX — BODY ROLL APPLICATION</span>
+  \[
+    \begin{pmatrix} y' \\ z' \end{pmatrix}
+    =
+    \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix}
+    \begin{pmatrix} y \\ z \end{pmatrix}
+  \]
+  <div class="formula-desc">Hub hardpoints remain fixed (wheel-referenced); only chassis points rotate with the body. This models the relative motion between sprung and unsprung mass through cornering.</div>
+</div>
+
+<p>At each step the tool recomputes: updated arm line gradients, new instant centre location, roll centre height and lateral position, camber change rate, real wheel camber (body roll plus camber gain), FVSA length, and track width variation.</p>
+
+<div class="callout green">
+  <div class="callout-icon">✓</div>
+  <div class="callout-text"><strong>Why roll centre migration matters — within limits.</strong> As discussed, the kinematic roll centre is not a direct predictor of vehicle behaviour. However, tracking its migration through roll comparatively is still informative: a roll centre that drops rapidly through roll reduces the geometric load transfer contribution mid-corner, increasing reliance on the spring and ARB path. Understanding this shift helps calibrate how aggressively to set ARB rates relative to spring rates — even if the absolute numbers are treated with appropriate scepticism.</div>
+</div>
+
+<div class="figure">
+  <img src="Roll-Centre-Migration.png" alt="Chart showing front and rear roll centre height versus body roll angle">
+  <div class="figure-caption">Fig. 3 — Roll centre migration through the body roll sweep. The front centre descends gradually while the rear remains more stable — consistent with the longer front FVSA.</div>
+</div>
+
+<!-- 08 -->
+<div class="section-num" style="margin-top:56px">08 &nbsp;— VALIDATION</div>
+<h2 id="wishbones">Wishbone Length Validation Against CAD</h2>
+
+<p>The Wishbones sheet provides a critical geometric consistency check: it computes the 3D Euclidean length of each wishbone arm from the hardpoint coordinates and compares these against CAD measurements.</p>
+
+<div class="formula-box">
+  <span class="formula-label">3D WISHBONE LENGTH</span>
+  \[
+    L = \sqrt{\,(\Delta x)^2 + (\Delta y)^2 + (\Delta z)^2\,}
+  \]
+</div>
+
+<div class="table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Wishbone</th><th>Calculated (mm)</th><th>CAD (mm)</th><th>Error</th></tr></thead>
+    <tbody>
+      <tr><td>Front Upper — Forward arm</td><td class="value">~316</td><td>~316</td><td>&lt;0.03%</td></tr>
+      <tr><td>Front Upper — Rearward arm</td><td class="value">~292</td><td>~292</td><td>&lt;0.02%</td></tr>
+      <tr><td>Front Lower — Forward arm</td><td class="value">~366</td><td>~366</td><td>&lt;0.02%</td></tr>
+      <tr><td>Front Lower — Rearward arm</td><td class="value">~363</td><td>~363</td><td>&lt;0.03%</td></tr>
+      <tr><td>Rear Upper — Forward arm</td><td class="value">~364</td><td>~364</td><td>&lt;0.02%</td></tr>
+      <tr><td>Rear Lower — Forward arm</td><td class="value">~409</td><td>~409</td><td>&lt;0.01%</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p>All wishbone lengths agree with CAD to within less than 0.05%. If the 3D lengths match, the hardpoints are geometrically self-consistent — every downstream calculation is built on a correct foundation.</p>
+
+<!-- 09 — MERGED TYRE SECTION -->
+<div class="section-num" style="margin-top:56px">09 &nbsp;— TYRE MODELLING &amp; LOAD SENSITIVITY</div>
+<h2 id="tyre">Tyre Modelling, Load Sensitivity, and Why It Changes Everything</h2>
+
+<p>The tyre is not a rigid body. Under load it deflects, deforming the contact patch and altering the effective ride rate at the wheel. I used manufacturer-supplied static spring rate data across a matrix of tyre pressures and vertical loads, and fitted a regression model to this data.</p>
+
+<h3>Regression Model</h3>
+
+<p>With nine data points spanning three pressure levels and three load levels, a multiple linear regression was performed in Excel's Analysis ToolPak, modelling spring rate as a function of tyre pressure and vertical load:</p>
+
+<div class="formula-box">
+  <span class="formula-label">TYRE SPRING RATE REGRESSION</span>
+  \[
+    k_\text{tyre} = \beta_0 + \beta_1\,P + \beta_2\,W
+  \]
+  <div class="formula-desc">
+    where \(P\) = tyre pressure (bar), \(W\) = wheel load (kg)<br>
+    Approximate fitted coefficients: \(\beta_0 \approx 50{,}000\,\text{N/m}\), \(\beta_1 \approx 68{,}000\,\text{N/m/bar}\), \(\beta_2 \approx 190\,\text{N/m/kg}\)<br>
+    \(R^2 \approx 0.97\) — explaining approximately 97% of variance across the tested operating range.
+  </div>
+</div>
+
+<p>The manufacturer data implied a broadly linear relationship between wheel load and static spring rate — and with only nine data points, the regression confirms this holds reasonably well across the measured range. However, this linearity should not be taken as a general truth. It is a characteristic of the static spring rate measurement specifically, and it does not extend to the tyre's lateral force behaviour — which is where the picture becomes more complex and far more consequential for vehicle set-up.</p>
+
+<h3>Static Contact Patch Deflection</h3>
+
+<div class="formula-box">
+  <span class="formula-label">STATIC TYRE DEFLECTION</span>
+  \[
+    \delta_\text{tyre} = \frac{W_\text{corner}}{k_\text{tyre}}
+  \]
+  <div class="formula-desc">Approximately 6–7 mm at static corner load. This shifts the contact patch centre relative to the wheel centreline and feeds directly into the scrub radius and roll centre calculations.</div>
+</div>
+
+<h3>Tyre Load Sensitivity — Why Lateral Force Is Not Linear</h3>
+
+<p>Any discussion of lateral load transfer is incomplete without understanding <strong>tyre load sensitivity</strong>. It is arguably the most important single concept in vehicle dynamics set-up, and one of the most commonly glossed over.</p>
+
+<p>Unlike the approximately linear static spring rate, a tyre's lateral force generation is markedly <em>degressive</em> with vertical load. At low loads the relationship is roughly linear — double the load, approximately double the lateral force. But as load increases, the tyre saturates: the rate of lateral force gain diminishes. This non-linearity is described thoroughly by Pacejka and is observable in any FSAE tyre dataset. Where the spring rate data suggested linearity was a safe approximation, the lateral force data makes clear it is not.</p>
+
+<div class="formula-box">
+  <span class="formula-label">TYRE LOAD SENSITIVITY — CONCEPTUAL</span>
+  \[
+    \frac{\partial F_y}{\partial F_z}\bigg|_{F_z = F_0 + \Delta F}
+    \;<\;
+    \frac{\partial F_y}{\partial F_z}\bigg|_{F_z = F_0}
+  \]
+  <div class="formula-desc">The marginal lateral force gained by adding load decreases as total load increases. The tyre becomes less efficient at high loads — additional vertical load buys proportionally less lateral grip.</div>
+</div>
+
+<p>The consequence for vehicle set-up is direct and important: <strong>lateral load transfer reduces total axle grip</strong>. Consider two wheels on the same axle, each carrying \(F_0\) of vertical load at rest. In a corner, load transfers by \(\Delta F\) — the outer wheel sees \(F_0 + \Delta F\) and the inner sees \(F_0 - \Delta F\). The outer wheel gains some lateral force capacity, but due to the degressive curve, it gains <em>less</em> than the inner wheel loses. The axle's total lateral force potential decreases.</p>
+
+<div class="callout blue">
+  <div class="callout-icon">💡</div>
+  <div class="callout-text"><strong>The practical implication for set-up:</strong> minimising lateral load transfer at each axle preserves grip. This is why a lower centre of gravity is always beneficial — it reduces the roll moment and therefore load transfer for a given lateral acceleration. It is also why ARB tuning matters: a stiffer ARB at one axle transfers more load there, reducing that axle's grip limit faster. The split between axles — not just the total stiffness — controls handling balance. A stiffer front ARB increases front load transfer relative to rear, pushing the car towards understeer. A stiffer rear ARB does the opposite.</div>
+</div>
+
+<p>This bears directly on the roll stiffness distribution computed in the Springs and ARB sheets. The 45/55 front/rear split in this design induces mild understeer as a stable baseline for a new driver and an unproven vehicle. A driver comfortable with the car can soften the front ARB, reducing front load transfer and recovering front grip balance.</p>
+
+<p>At approximately 1.3&nbsp;G lateral, the front outer wheel is carrying roughly <strong>2.4× its static load</strong>, and the inner is contributing relatively little lateral force. The linear spring rate model is still a valid input to the ride frequency and wheel rate calculations — but it is the non-linear lateral force behaviour that ultimately sets the grip limits at each axle, and that is where the load sensitivity picture matters most.</p>
+
+<div class="figure">
+  <img src="Lateral-Vs-Vertical.jpg" alt="Chart of tyre lateral force versus vertical load showing degressive relationship">
+  <div class="figure-caption">Fig. 4 — Tyre load sensitivity: the degressive \(F_y\)–\(F_z\) curve means the outer wheel's gain in lateral capacity is always less than the inner wheel's loss. Total axle grip falls with increasing load transfer.</div>
+</div>
+
+<!-- 10 -->
+<div class="section-num" style="margin-top:56px">10 &nbsp;— LOAD TRANSFER IN DETAIL</div>
+<h2 id="weight-transfer">Lateral Load Transfer — Decomposed</h2>
+
+<p>With tyre load sensitivity in mind, the Weight Transfer sheet becomes more than a force accounting exercise. The goal is not just to know how much load transfers — it is to understand <em>through which paths</em> it goes, and what that means for grip balance.</p>
+
+<h3>The Three Paths of Lateral Load Transfer</h3>
+
+<ol>
+  <li><strong>Unsprung mass load transfer</strong> — the wheels, hubs, and brake hardware are unsprung. Their contribution is \(\Delta F_\text{unsprung} = m_\text{us} \cdot a_y \cdot h_\text{us} / t\). Small, but fixed — it cannot be tuned.</li>
+  <li><strong>Geometric (jacking) load transfer</strong> — lateral tyre force is reacted through the suspension geometry directly into the sprung mass. The proportion going through this path is set by the roll centre height. This path involves no spring compression, produces no roll angle, and is not tunable without changing geometry.</li>
+  <li><strong>Elastic load transfer</strong> — the remainder of the lateral force is reacted through the springs and anti-roll bars, causing the body to roll until spring moments balance the applied load. This is the tunable portion.</li>
+</ol>
+
+<div class="formula-box">
+  <span class="formula-label">LATERAL LOAD TRANSFER — DECOMPOSED</span>
+  \[
+    \Delta F_\text{total} = \Delta F_\text{unsprung} + \Delta F_\text{geometric} + \Delta F_\text{elastic}
+  \]
+  \[
+    \Delta F_\text{geometric} = \frac{m_s \cdot a_y \cdot h_\text{RC}}{t}
+    \qquad
+    \Delta F_\text{elastic} = \frac{K_\phi \cdot \phi}{t}
+  \]
+  <div class="formula-desc">\(m_s\) = sprung mass, \(a_y\) = lateral acceleration, \(h_\text{RC}\) = roll centre height, \(t\) = track width, \(K_\phi\) = roll stiffness (Nm/°), \(\phi\) = roll angle.</div>
+</div>
+
+<h3>Roll Gradient</h3>
+
+<div class="formula-box">
+  <span class="formula-label">ROLL GRADIENT</span>
+  \[
+    \frac{d\phi}{da_y} = \frac{m_s \cdot g \cdot \left(h_\text{CoG} - h_\text{RC,eff}\right)}{K_{\phi,\text{total}}}
+  \]
+  <div class="formula-desc">Roll gradient target ≈ 1.5°/g, with a maximum roll angle of around 2.4° at peak lateral acceleration. \(h_\text{RC,eff}\) accounts for the front/rear roll centre distribution.</div>
+</div>
+
+<h3>Per-Wheel Loads</h3>
+
+<div class="formula-box">
+  <span class="formula-label">PER-WHEEL LOADS IN CORNERING</span>
+  \[
+    F_{z,\text{outer}} = \frac{W_\text{axle}}{2} + \Delta F_\text{axle}
+    \qquad
+    F_{z,\text{inner}} = \frac{W_\text{axle}}{2} - \Delta F_\text{axle}
+  \]
+</div>
+
+<p>At the skidpad scenario (approximately 1.3&nbsp;G lateral), the front outer wheel carries roughly <strong>~2,400&nbsp;N</strong> against the inner's <strong>~950&nbsp;N</strong>. At the maximum lateral acceleration target of around 1.6&nbsp;G this diverges further — bringing tyre load sensitivity directly into play, as discussed in the previous section.</p>
+
+<div class="metric-strip">
+  <div class="metric-item"><span class="m-val">~1.6 G</span><span class="m-label">Max lateral acceleration target</span></div>
+  <div class="metric-item"><span class="m-val">~800 N</span><span class="m-label">Front axle lateral load transfer</span></div>
+  <div class="metric-item"><span class="m-val">~600 N</span><span class="m-label">Rear axle lateral load transfer</span></div>
+  <div class="metric-item"><span class="m-val">PASS</span><span class="m-label">Tilt test — 60° front &amp; rear</span></div>
+</div>
+
+<!-- 11 -->
+<div class="section-num" style="margin-top:56px">11 &nbsp;— SPRING SELECTION</div>
+<h2 id="springs">Springs, Motion Ratio, and Ride Frequency</h2>
+
+<p>The Springs sheet connects geometric analysis to physical hardware. The chain is: target ride frequency → required wheel rate → account for motion ratio through the rocker → required spring rate → select from the available catalogue.</p>
+
+<div class="formula-box">
+  <span class="formula-label">MOTION RATIO — PUSH-ROD ACTUATED ROCKER</span>
+  \[
+    \text{MR} = \frac{L_\text{shock arm}}{L_\text{pushrod arm}} \cdot \sin(\alpha_\text{pushrod}) \cdot \cos(\alpha_\text{spring})
+  \]
+  <div class="formula-desc">Front MR ≈ 0.68, Rear MR ≈ 0.78. The spring only sees MR of the wheel displacement.</div>
+</div>
+
+<div class="formula-box">
+  <span class="formula-label">WHEEL RATE AND NATURAL FREQUENCY</span>
+  \[
+    K_\text{wheel} = K_\text{spring} \cdot \text{MR}^2
+    \qquad
+    f_n = \frac{1}{2\pi}\sqrt{\,\frac{K_\text{wheel}}{m_\text{corner}}\,}
+  \]
+  <div class="formula-desc">Targeting \(f_n \approx 2.2\,\text{Hz}\) front and \(2.0\,\text{Hz}\) rear. The higher front frequency resists pitch under braking and is typical for Formula Student applications.</div>
+</div>
+
+<p>Wheel travel is also verified: front jounce approximately <strong>70&nbsp;mm</strong>, droop approximately <strong>25&nbsp;mm</strong>, checked against load transfer scenarios to confirm the spring does not bottom out under maximum braking or cornering.</p>
+
+<!-- 12 -->
+<div class="section-num" style="margin-top:56px">12 &nbsp;— ANTI-ROLL BAR</div>
+<h2 id="arb">Anti-Roll Bar — Torsional Stiffness and Bar Sizing</h2>
+
+<p>With spring rates selected and their roll stiffness contribution known, the shortfall must come from the anti-roll bars. The ARB sheet accepts the required torsional stiffness, the ARB motion ratio through the rocker, material properties, and bar geometry — outputting the required diameter.</p>
+
+<div class="formula-box">
+  <span class="formula-label">REQUIRED ARB TORSIONAL STIFFNESS</span>
+  \[
+    K_{\phi,\text{ARB}} = \frac{K_{\phi,\text{required}} - K_{\phi,\text{springs}}}{\text{MR}_\text{ARB}^2}
+  \]
+</div>
+
+<div class="formula-box">
+  <span class="formula-label">SOLID CIRCULAR BAR — REQUIRED DIAMETER</span>
+  \[
+    K_t = \frac{G J}{L_\text{eff}\,L_\text{lever}^2}
+    \qquad \Rightarrow \qquad
+    d = \left(\frac{32\,K_t\,L_\text{eff}\,L_\text{lever}^2}{\pi\,G}\right)^{\!1/4}
+  \]
+  <div class="formula-desc">\(G\) = shear modulus (≈79 GPa for steel), \(J = \pi d^4/32\) for a solid bar. The tool also supports hollow bar geometry, adjusting \(J\) for the annular cross-section.</div>
+</div>
+
+<p>The resulting bar diameters are approximately <strong>12&nbsp;mm</strong> at the front and <strong>8&nbsp;mm</strong> at the rear — small, as expected for a lightweight Formula Student car. The hollow bar option allows mass to be saved at the cost of higher manufacturing complexity.</p>
+
+<!-- 13 -->
+<div class="section-num" style="margin-top:56px">13 &nbsp;— SETUP COMPARISON</div>
+<h2 id="comparison">Comparing Against the Previous Year's Baseline</h2>
+
+<p>The Setups sheet stores named configurations and computes the delta between them. The most significant changes from the previous year to the new design are in the lower wishbone mounting heights — lowering the lower chassis attachment points adjusts arm inclination angles, which cascades into anti-dive geometry and roll centre heights. Every change is fully traceable through the workbook.</p>
+
+<div class="table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Parameter</th><th>Previous Year (approx.)</th><th>New Design (approx.)</th><th>Direction</th></tr></thead>
+    <tbody>
+      <tr><td>Front track width</td><td>~1,185 mm</td><td>~1,190 mm</td><td class="value">+5 mm wider</td></tr>
+      <tr><td>Rear track width</td><td>~1,140 mm</td><td>~1,140 mm</td><td class="value">Unchanged</td></tr>
+      <tr><td>Front lower chassis Z</td><td>~134 mm</td><td>~115 mm</td><td class="value">−19 mm lower</td></tr>
+      <tr><td>Rear upper hub outboard Y</td><td>~491 mm</td><td>~501 mm</td><td class="value">+10 mm outboard</td></tr>
+      <tr><td>Approx. front roll centre</td><td>~50 mm</td><td>~45 mm</td><td class="value">Slightly lower</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 14 -->
+<div class="section-num" style="margin-top:56px">14 &nbsp;— REFLECTIONS</div>
+<h2 id="reflections">What I Learned — and What Comes Next</h2>
+
+<p>Building this calculator from first principles forces a depth of understanding that reading alone does not produce. When the roll centre came out in an unexpected location, tracing back through the instant centre computation was the only option — there was no black box to blame. That process is its own form of education.</p>
+
+<p>The tyre section was perhaps the most illuminating to build. It started as a straightforward regression exercise — the manufacturer data suggested a roughly linear relationship between load and spring rate, and that held up well enough for ride frequency calculations. But the moment you look at lateral force behaviour and see how rapidly the degressive curve diverges from that linear approximation, the priority of keeping the car flat becomes viscerally clear. The spring rate linearity is a safe modelling assumption in one context; in the context of grip, it is exactly the wrong assumption.</p>
+
+<p>Engaging with Mitchell's critique of the kinematic roll centre was also clarifying. It is tempting to treat a roll centre number as a target to hit — but understanding that the Force Application Points are what actually govern load transfer changes how you think about the geometry. The kinematic roll centre becomes a comparative tool rather than an absolute design constraint.</p>
+
+<p>Several areas remain in development. The Jounce and Droop sheets currently carry placeholder markers — the full wheel travel kinematics analysis is the next major addition. The tyre regression will be refined once on-car pressure and load data comes back from 4-post rig testing. And the whole workbook will be cross-validated against MSC Adams Car once the physical system is built, with Adams capturing the higher-order effects that a 2D/3D hybrid model inevitably misses.</p>
+
+<div class="callout blue">
+  <div class="callout-icon">🔗</div>
+  <div class="callout-text"><strong>This calculator is deployed on Team HARE CV and will be used to validate the suspension system ahead of the IMechE Formula Student UK event.</strong> If you're working on something similar and want to discuss the methodology, reach out via <a href="https://www.linkedin.com/in/maxmatthew/">LinkedIn</a> or <a href="mailto:max@maxmatthew.co.uk">Email</a>.</div>
+</div>
+
+</article>
+
+<!-- SIDEBAR -->
+<aside class="article-sidebar">
+  <div class="sidebar-label">TABLE OF CONTENTS</div>
+  <ul class="toc-list">
+    <li><a href="#why">01 — Why I Built It</a></li>
+    <li><a href="#architecture">02 — Workbook Architecture</a></li>
+    <li><a href="#coordinates">03 — Coordinate System</a></li>
+    <li><a href="#instant-centres">04 — Instant Centres &amp; Roll Centre</a></li>
+    <li><a href="#camber">05 — Camber, KPI &amp; Scrub</a></li>
+    <li><a href="#antidive">06 — Anti-Dive &amp; Anti-Squat</a></li>
+    <li><a href="#roll-sweep">07 — Dynamic Roll Sweep</a></li>
+    <li><a href="#wishbones">08 — Wishbone Validation</a></li>
+    <li><a href="#tyre">09 — Tyre Modelling &amp; Load Sensitivity</a></li>
+    <li><a href="#weight-transfer">10 — Load Transfer (Detail)</a></li>
+    <li><a href="#springs">11 — Springs &amp; Motion Ratio</a></li>
+    <li><a href="#arb">12 — Anti-Roll Bar</a></li>
+    <li><a href="#comparison">13 — Setup Comparison</a></li>
+    <li><a href="#reflections">14 — Reflections</a></li>
+  </ul>
+  <hr class="sidebar-divider">
+  <div class="sidebar-section-title">KEY REFERENCES</div>
+  <ul class="sidebar-list">
+    <li><em>Race Car Vehicle Dynamics</em><br>Milliken &amp; Milliken</li>
+    <li><em>Chassis Design</em><br>Olley, Milliken &amp; Milliken</li>
+    <li><em>Tyre and Vehicle Dynamics</em><br>Hans B. Pacejka</li>
+    <li><em>Roll Centre Myths and Reality</em><br>Mitchell</li>
+    <li><em>Competition Car Suspension</em><br>Allan Staniforth</li>
+    <li><em>Fundamentals of Vehicle Dynamics</em><br>Thomas Gillespie</li>
+  </ul>
+  <hr class="sidebar-divider">
+  <div class="sidebar-section-title">TOOL SPECS</div>
+  <ul class="sidebar-list">
+    <li>Platform: <em>Microsoft Excel</em></li>
+    <li>Sheets: <em>15 interconnected</em></li>
+    <li>Wishbone error: <em>&lt;0.05% vs CAD</em></li>
+    <li>Regression R²: <em>≈0.97</em></li>
+    <li>Status: <em>Deployed — Team HARE CV</em></li>
+  </ul>
+</aside>
+
+</div><!-- /article-layout -->
+
+<footer>
+  <div class="footer-inner">
+    <span class="footer-left">© 2026 · Max Matthew · Huddersfield, UK</span>
+    <div class="footer-links">
+      <a href="https://www.linkedin.com/in/maxmatthew/">LinkedIn</a>
+      <a href="/CV - Max Matthew.pdf">View CV</a>
+      <a href="index.html">Home</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const headings = document.querySelectorAll('.prose h2[id]');
+const tocLinks = document.querySelectorAll('.toc-list a');
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      tocLinks.forEach(l => l.classList.remove('active'));
+      const a = document.querySelector(`.toc-list a[href="#${e.target.id}"]`);
+      if (a) a.classList.add('active');
+    }
+  });
+}, { rootMargin: '-15% 0px -75% 0px' });
+headings.forEach(h => io.observe(h));
+</script>
+</body>
+</html>
