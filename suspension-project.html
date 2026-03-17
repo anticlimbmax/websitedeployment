@@ -3,18 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>How I Built a Real-Time Suspension Geometry Calculator in Excel - Max Matthew</title>
+<title>Mode-Decoupled Suspension — Max Matthew</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
-<script>
-  MathJax = {
-    tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
-    options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] },
-    svg: { scale: 0.95, minScale: 0.5, fontCache: 'global' }
-  };
-</script>
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Playfair+Display:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0D1117;
@@ -22,172 +14,160 @@
     --bg-raised: #1C2333;
     --blue: #1A6AFF;
     --blue-dim: rgba(26,106,255,0.12);
+    --red: #E63946;
     --red-dim: rgba(230,57,70,0.12);
+    --green: #3FB950;
+    --amber: #F0B400;
     --text: #E6EDF3;
     --text-mid: #8B949E;
     --text-dim: #484F58;
     --border: #21262D;
     --border-hover: #30363D;
-    --font-ui: 'Syne', sans-serif;
+    --font-display: 'Syne', sans-serif;
     --font-mono: 'DM Mono', monospace;
+    --font-serif: 'Playfair Display', serif;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
-  body { background: var(--bg); color: var(--text); font-family: var(--font-ui); line-height: 1.6; overflow-x: hidden; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-display); line-height: 1.6; overflow-x: hidden; }
 
   .grid-bg {
     position: fixed; inset: 0; z-index: 0; pointer-events: none;
-    background-image: linear-gradient(rgba(26,106,255,0.025) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(26,106,255,0.025) 1px, transparent 1px);
+    background-image: linear-gradient(rgba(26,106,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(26,106,255,0.025) 1px, transparent 1px);
     background-size: 60px 60px;
   }
 
-  /* NAV */
   nav {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100; height: 60px;
-    background: rgba(13,17,23,0.85); backdrop-filter: blur(20px);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 60px; background: rgba(13,17,23,0.85); backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 40px;
   }
   .nav-inner { max-width: 1200px; width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
-  .nav-logo { font-size: 15px; font-weight: 700; letter-spacing: 0.08em; color: var(--text); display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .nav-logo { font-size: 15px; font-weight: 700; letter-spacing: 0.08em; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 10px; }
   .nav-logo .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
-  .nav-links { display: flex; gap: 32px; }
-  .nav-links a { color: var(--text-mid); text-decoration: none; font-size: 13px; font-weight: 500; letter-spacing: 0.04em; transition: color 0.2s; }
-  .nav-links a:hover { color: var(--text); }
-  .nav-back { display: flex; align-items: center; gap: 8px; color: var(--text-mid); text-decoration: none; font-size: 13px; font-weight: 500; transition: color 0.2s; }
-  .nav-back:hover { color: var(--blue); }
-  .nav-back svg { width: 14px; height: 14px; }
+  .nav-breadcrumb { display: flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); }
+  .nav-breadcrumb .current { color: var(--blue); }
+  .nav-back { background: transparent; color: var(--text-mid); padding: 7px 16px; border-radius: 6px; font-family: var(--font-display); font-size: 13px; font-weight: 600; transition: all 0.2s; text-decoration: none; border: 1px solid var(--border); display: flex; align-items: center; gap: 7px; }
+  .nav-back:hover { border-color: var(--blue); color: var(--blue); }
 
-  /* HERO */
-  .article-hero { padding: 120px 40px 60px; position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; border-bottom: 1px solid var(--border); }
-  .article-hero-meta { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-  .article-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; padding: 4px 12px; border-radius: 100px; background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(26,106,255,0.3); }
-  .article-meta-item { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); }
-  .article-hero h1 { font-size: clamp(28px, 5vw, 56px); font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 20px; }
+  .article-hero { padding: 120px 40px 20px; position: relative; z-index: 1; border-bottom: 1px solid var(--border); }
+  .article-hero-inner { max-width: 1300px; margin: 0 auto; display: grid; grid-template-columns: 1fr 560px; gap: 40px; align-items: center; }
+  .hero-render {
+    position: relative;
+    display: flex; align-items: flex-end; justify-content: center;
+    margin-bottom: -80px;
+    filter: drop-shadow(0 24px 48px rgba(26,106,255,0.12));
+  }
+  .hero-render img { width: 100%; height: auto; object-fit: contain; display: block; }
+  .article-hero-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .article-tag { display: inline-flex; align-items: center; gap: 8px; background: var(--blue-dim); border: 1px solid rgba(26,106,255,0.3); padding: 5px 14px; border-radius: 100px; font-family: var(--font-mono); font-size: 11px; color: var(--blue); letter-spacing: 0.1em; }
+  .article-tag .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.8); } }
+  .article-tag-amber { background: rgba(240,180,0,0.1); border-color: rgba(240,180,0,0.25); color: var(--amber); }
+  .article-tag-green { background: rgba(63,185,80,0.08); border-color: rgba(63,185,80,0.2); color: var(--green); }
+  .article-hero h1 { font-family: var(--font-serif); font-size: clamp(32px, 5vw, 58px); font-weight: 400; line-height: 1.15; letter-spacing: -0.01em; margin-bottom: 20px; animation: fadeUp 0.6s ease both; }
   .article-hero h1 .accent { color: var(--blue); }
-  .article-hero .lead { font-size: 17px; color: var(--text-mid); max-width: 700px; line-height: 1.75; font-weight: 400; margin-bottom: 40px; }
-  .article-stats { display: flex; gap: 32px; flex-wrap: wrap; }
-  .article-stat { display: flex; flex-direction: column; gap: 4px; }
-  .article-stat .num { font-size: 22px; font-weight: 800; color: var(--blue); }
-  .article-stat .lbl { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: 0.05em; }
+  .article-hero-sub { font-size: 16px; color: var(--text-mid); line-height: 1.75; font-weight: 400; max-width: 700px; margin-bottom: 36px; animation: fadeUp 0.6s 0.1s ease both; }
+  .article-hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; max-width: 700px; animation: fadeUp 0.6s 0.2s ease both; }
+  .article-stat { background: var(--bg-card); padding: 16px 14px; text-align: center; transition: background 0.2s; }
+  .article-stat:hover { background: var(--bg-raised); }
+  .article-stat .num { font-size: 20px; font-weight: 800; color: var(--blue); display: block; }
+  .article-stat .label { font-size: 10px; color: var(--text-mid); margin-top: 3px; font-family: var(--font-mono); letter-spacing: 0.04em; line-height: 1.4; }
 
-  /* LAYOUT */
-  .article-layout { max-width: 1200px; margin: 0 auto; padding: 60px 40px; display: grid; grid-template-columns: 1fr 280px; gap: 60px; align-items: start; position: relative; z-index: 1; }
-  .article-body { min-width: 0; overflow: visible; }
-  .article-sidebar { position: sticky; top: 80px; }
+  .article-layout { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 220px 1fr; gap: 0; padding: 80px 40px 0; position: relative; z-index: 1; }
+  .article-toc { padding: 48px 32px 48px 0; border-right: 1px solid var(--border); }
+  .toc-sticky { position: sticky; top: 80px; }
+  .toc-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 16px; }
+  .toc-list { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+  .toc-list a { display: block; text-decoration: none; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); padding: 6px 10px; border-radius: 6px; transition: all 0.2s; letter-spacing: 0.03em; line-height: 1.4; border-left: 2px solid transparent; }
+  .toc-list a:hover, .toc-list a.active { color: var(--blue); background: var(--blue-dim); border-left-color: var(--blue); }
+  .toc-divider { height: 1px; background: var(--border); margin: 12px 0; }
+  .toc-entry-link { display: block; font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); text-decoration: none; padding: 4px 10px 4px 18px; border-radius: 4px; transition: all 0.2s; position: relative; letter-spacing: 0.02em; margin-bottom: 2px; }
+  .toc-entry-link::before { content: '·'; position: absolute; left: 9px; color: var(--text-dim); }
+  .toc-entry-link:hover { color: var(--blue); }
 
-  /* PROSE */
-  .prose h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 56px 0 16px; color: var(--text); line-height: 1.2; padding-top: 16px; border-top: 1px solid var(--border); }
-  .prose h2:first-child { margin-top: 0; border-top: none; padding-top: 0; }
-  .prose h3 { font-size: 17px; font-weight: 700; margin: 32px 0 12px; color: var(--text); display: flex; align-items: center; gap: 10px; }
-  .prose h3::before { content: ''; display: inline-block; width: 3px; height: 16px; background: var(--blue); border-radius: 2px; flex-shrink: 0; }
-  .prose p { color: var(--text-mid); font-size: 15px; line-height: 1.85; margin-bottom: 20px; }
-  .prose strong { color: var(--text); font-weight: 700; }
-  .prose a { color: var(--blue); text-decoration: none; }
-  .prose a:hover { text-decoration: underline; }
-  .prose ul, .prose ol { color: var(--text-mid); font-size: 15px; line-height: 1.85; margin-bottom: 20px; padding-left: 0; list-style: none; }
-  .prose ul li, .prose ol li { padding: 4px 0 4px 24px; position: relative; }
-  .prose ul li::before { content: '→'; position: absolute; left: 0; color: var(--blue); font-family: var(--font-mono); font-size: 12px; }
-  .prose ol { counter-reset: item; }
-  .prose ol li { counter-increment: item; }
-  .prose ol li::before { content: counter(item, decimal-leading-zero); position: absolute; left: 0; color: var(--blue); font-family: var(--font-mono); font-size: 11px; top: 6px; }
+  .article-body { padding: 48px 0 48px 48px; }
+  .entry-block { padding: 48px 0; border-bottom: 1px solid var(--border); }
+  .entry-block:last-child { border-bottom: none; }
+  .entry-header { display: flex; align-items: flex-start; gap: 24px; margin-bottom: 32px; }
+  .entry-num-large { font-family: var(--font-serif); font-size: 64px; font-weight: 400; color: var(--text-dim); line-height: 1; flex-shrink: 0; width: 70px; text-align: right; padding-top: 4px; }
+  .entry-period-tag { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+  .entry-title-large { font-family: var(--font-serif); font-size: clamp(20px, 2.5vw, 30px); font-weight: 500; line-height: 1.25; color: var(--text); }
+  .entry-divider { width: 48px; height: 2px; background: var(--blue); margin: 0 0 32px 94px; }
 
-  /* FORMULA BOXES */
-  .formula-box {
-    background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--blue);
-    border-radius: 8px; padding: 20px 24px; margin: 24px 0;
-    overflow: visible;
-  }
-  .formula-box .formula-label { font-family: var(--font-mono); font-size: 10px; color: var(--blue); letter-spacing: 0.12em; margin-bottom: 12px; display: block; }
-  .formula-box .formula-desc { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); margin-top: 10px; line-height: 1.6; }
-  .formula-box mjx-container[display="true"] { display: block; overflow-x: auto; overflow-y: visible; max-width: 100%; padding-bottom: 4px; }
-  .formula-box mjx-container[display="true"] svg { max-width: 100%; height: auto; }
+  .prose { margin-left: 94px; }
+  .prose-section { margin-bottom: 36px; }
+  .prose-section h3 { font-family: var(--font-serif); font-size: 18px; font-weight: 500; color: var(--text); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .prose-section p { font-size: 15px; color: var(--text-mid); line-height: 1.8; margin-bottom: 14px; font-weight: 400; }
+  .prose-section p:last-child { margin-bottom: 0; }
 
-  /* CALLOUTS */
-  .callout { border-radius: 10px; padding: 20px 24px; margin: 28px 0; display: flex; gap: 16px; }
-  .callout.blue { background: var(--blue-dim); border: 1px solid rgba(26,106,255,0.2); }
-  .callout.green { background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.2); }
-  .callout.yellow { background: rgba(240,180,0,0.08); border: 1px solid rgba(240,180,0,0.2); }
-  .callout.red { background: var(--red-dim); border: 1px solid rgba(230,57,70,0.25); }
-  .callout-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
-  .callout-text { font-size: 14px; color: var(--text-mid); line-height: 1.7; min-width: 0; }
-  .callout-text strong { color: var(--text); }
+  .pullquote { border-left: 2px solid var(--blue); margin: 24px 0; padding: 10px 0 10px 20px; background: var(--blue-dim); border-radius: 0 8px 8px 0; }
+  .pullquote p { font-family: var(--font-serif) !important; font-style: italic; font-size: 16px !important; color: var(--text) !important; line-height: 1.6 !important; margin: 0 0 6px !important; }
+  .pullquote cite { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); font-style: normal; letter-spacing: 0.04em; }
 
-  /* FIGURES - clickable images */
-  .figure { margin: 32px 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg-card); }
-  .figure-img-wrap {
-    display: block; cursor: zoom-in; position: relative; overflow: hidden;
-  }
-  .figure-img-wrap::after {
-    content: '⤢';
-    position: absolute; top: 10px; right: 12px;
-    font-size: 16px; color: var(--text);
-    background: rgba(13,17,23,0.7);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 3px 7px;
-    opacity: 0;
-    transition: opacity 0.2s;
-    pointer-events: none;
-    font-family: sans-serif;
-    line-height: 1;
-  }
-  .figure-img-wrap:hover::after { opacity: 1; }
-  .figure-img-wrap img { width: 100%; display: block; transition: transform 0.25s; }
-  .figure-img-wrap:hover img { transform: scale(1.015); }
-  .figure-caption { padding: 12px 20px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); font-style: italic; }
+  .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 24px 0; }
+  .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; transition: border-color 0.2s; }
+  .stat-card:hover { border-color: var(--blue); }
+  .stat-card .s-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+  .stat-card .s-val { font-size: 16px; font-weight: 800; color: var(--blue); }
 
-  /* LIGHTBOX */
-  .lightbox { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.92); align-items: center; justify-content: center; padding: 24px; cursor: zoom-out; }
+  .mode-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 20px 0; }
+  .mode-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; transition: border-color 0.2s; }
+  .mode-card:hover { border-color: var(--border-hover); }
+  .mode-axis { font-family: var(--font-mono); font-size: 10px; color: var(--blue); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
+  .mode-name { font-size: 15px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+  .mode-desc { font-size: 12px; color: var(--text-mid); line-height: 1.55; }
+
+  .fs-chip-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; }
+  .fs-chip { background: var(--bg-raised); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .fs-chip .fc-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 5px; }
+  .fs-chip .fc-val { font-size: 13px; font-weight: 600; color: var(--text); }
+
+  .entry-img { margin: 24px 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+  .entry-img img { width: 100%; display: block; cursor: zoom-in; transition: opacity 0.15s; }
+  .entry-img img:hover { opacity: 0.88; }
+  .img-caption { padding: 10px 16px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.04em; }
+
+  .lightbox { display: none; position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,0.92); align-items: center; justify-content: center; padding: 24px; cursor: zoom-out; }
   .lightbox.open { display: flex; }
   .lightbox-inner { position: relative; max-width: min(90vw, 1200px); max-height: 90vh; }
   .lightbox-inner img { display: block; max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 8px; border: 1px solid var(--border); }
-  .lightbox-caption { margin-top: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); text-align: center; }
+  .lightbox-caption { margin-top: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.04em; text-align: center; }
   .lightbox-close { position: absolute; top: -14px; right: -14px; width: 28px; height: 28px; border-radius: 50%; background: var(--bg-raised); border: 1px solid var(--border); color: var(--text-mid); font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; line-height: 1; }
   .lightbox-close:hover { border-color: var(--blue); color: var(--blue); }
 
-  /* TABLE */
-  .table-wrap { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 28px 0; }
-  .data-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 12px; }
-  .data-table th { background: var(--bg-raised); color: var(--text-mid); font-weight: 500; padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border); letter-spacing: 0.05em; }
-  .data-table td { padding: 10px 16px; border-bottom: 1px solid rgba(33,38,45,0.6); color: var(--text-mid); vertical-align: top; }
-  .data-table td:first-child { color: var(--text); font-weight: 500; }
-  .data-table .value { color: var(--blue); }
-  .data-table tr:last-child td { border-bottom: none; }
-  .data-table tr:hover td { background: rgba(26,106,255,0.04); }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+  .entry-tag { font-family: var(--font-mono); font-size: 11px; padding: 4px 12px; border-radius: 100px; border: 1px solid var(--border); color: var(--text-dim); transition: all 0.2s; }
+  .entry-tag:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+  .entry-tag.active { background: var(--blue-dim); border-color: rgba(26,106,255,0.3); color: var(--blue); }
 
-  /* SHEET GRID */
-  .sheet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 28px 0; }
-  .sheet-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; transition: border-color 0.2s; }
-  .sheet-card:hover { border-color: var(--blue); }
-  .sheet-card .sheet-name { font-family: var(--font-mono); font-size: 11px; color: var(--blue); letter-spacing: 0.08em; margin-bottom: 6px; }
-  .sheet-card .sheet-desc { font-size: 13px; color: var(--text-mid); line-height: 1.6; }
+  .review-grid { display: flex; flex-direction: column; gap: 10px; margin: 20px 0; }
+  .review-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; display: grid; grid-template-columns: 130px 1fr; gap: 16px; align-items: start; transition: border-color 0.2s; }
+  .review-item:hover { border-color: var(--border-hover); }
+  .review-item-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.4; }
+  .review-item-verdict { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; margin-top: 5px; padding: 2px 8px; border-radius: 4px; display: inline-block; }
+  .verdict-no { background: var(--red-dim); color: var(--red); }
+  .verdict-future { background: rgba(240,180,0,0.1); color: var(--amber); }
+  .verdict-yes { background: rgba(63,185,80,0.1); color: var(--green); }
+  .review-item-desc { font-size: 13px; color: var(--text-mid); line-height: 1.6; }
 
-  /* METRIC STRIP */
-  .metric-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 28px 0; }
-  .metric-item { background: var(--bg-card); padding: 16px; transition: background 0.2s; }
-  .metric-item:hover { background: var(--bg-raised); }
-  .metric-item .m-val { font-size: 20px; font-weight: 800; color: var(--blue); display: block; margin-bottom: 4px; }
-  .metric-item .m-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); line-height: 1.4; }
+  .sim-stack { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 20px 0; }
+  .sim-layer { display: grid; grid-template-columns: 32px 160px 1fr; gap: 16px; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); transition: background 0.2s; }
+  .sim-layer:last-child { border-bottom: none; }
+  .sim-layer:hover { background: var(--bg-raised); }
+  .sim-layer-num { font-family: var(--font-mono); font-size: 11px; color: var(--blue); font-weight: 500; }
+  .sim-layer-name { font-size: 13px; font-weight: 700; color: var(--text); }
+  .sim-layer-desc { font-size: 12px; color: var(--text-mid); line-height: 1.5; }
 
-  /* SECTION NUMBER */
-  .section-num { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: 11px; color: var(--blue); letter-spacing: 0.12em; margin-bottom: 8px; }
-  .section-num::after { content: ''; width: 40px; height: 1px; background: var(--blue-dim); }
+  .progress-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+  .progress-title { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px; }
+  .progress-items { display: flex; flex-direction: column; gap: 10px; }
+  .progress-item { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-mid); }
+  .p-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+  .p-done { background: rgba(63,185,80,0.15); color: var(--green); }
+  .p-wip { background: rgba(240,180,0,0.12); color: var(--amber); }
+  .p-todo { background: var(--bg-raised); color: var(--text-dim); border: 1px solid var(--border); }
 
-  /* SIDEBAR */
-  .sidebar-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.12em; margin-bottom: 16px; }
-  .toc-list { list-style: none; }
-  .toc-list li { margin-bottom: 2px; }
-  .toc-list a { display: block; padding: 7px 12px; font-size: 13px; color: var(--text-dim); text-decoration: none; border-radius: 6px; border-left: 2px solid transparent; transition: all 0.15s; line-height: 1.4; }
-  .toc-list a:hover, .toc-list a.active { color: var(--blue); background: var(--blue-dim); border-left-color: var(--blue); }
-  .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
-  .sidebar-section-title { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.12em; margin-bottom: 12px; }
-  .sidebar-list { list-style: none; }
-  .sidebar-list li { font-size: 12px; color: var(--text-dim); padding: 5px 0; border-bottom: 1px solid rgba(33,38,45,0.5); line-height: 1.5; }
-  .sidebar-list li:last-child { border-bottom: none; }
-  .sidebar-list em { color: var(--text-mid); font-style: normal; }
-
-  /* FOOTER */
   footer { border-top: 1px solid var(--border); padding: 32px 40px; background: var(--bg); position: relative; z-index: 1; }
   .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
   .footer-left { font-size: 13px; color: var(--text-dim); font-family: var(--font-mono); }
@@ -195,26 +175,459 @@
   .footer-links a { font-size: 12px; color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
   .footer-links a:hover { color: var(--blue); }
 
-  /* RESPONSIVE */
-  @media (max-width: 900px) {
-    nav { padding: 0 20px; }
-    .nav-links { display: none; }
-    .article-hero { padding: 100px 20px 40px; }
-    .article-layout { grid-template-columns: 1fr; padding: 40px 20px; }
-    .article-sidebar { display: none; }
-    .sheet-grid { grid-template-columns: 1fr; }
-    .metric-strip { grid-template-columns: repeat(2, 1fr); }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-up { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+  .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 960px) {
+    .article-layout { grid-template-columns: 1fr; padding: 40px 20px 0; }
+    .article-toc { display: none; }
+    .article-body { padding: 32px 0; }
+    .prose { margin-left: 0; }
+    .entry-divider { margin-left: 0; }
+    .entry-num-large { font-size: 40px; width: 44px; }
+    .mode-grid, .stat-row { grid-template-columns: 1fr 1fr; }
+    .article-hero-inner { grid-template-columns: 1fr; gap: 0; }
+    .hero-render { margin-bottom: 0; max-width: 560px; margin-top: 24px; }
+    .article-hero-stats { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 600px) {
-    .metric-strip { grid-template-columns: 1fr 1fr; }
-    .article-stats { gap: 20px; }
+    nav { padding: 0 16px; }
+    .nav-breadcrumb { display: none; }
+    .article-hero { padding: 90px 20px 20px; }
+    .review-item { grid-template-columns: 1fr; gap: 8px; }
+    .sim-layer { grid-template-columns: 24px 1fr; }
+    .sim-layer-desc { display: none; }
+    .mode-grid, .stat-row, .fs-chip-row { grid-template-columns: 1fr; }
+    .hero-render { max-width: 100%; margin-bottom: 0; }
   }
 </style>
 </head>
 <body>
+
 <div class="grid-bg"></div>
 
-<!-- LIGHTBOX -->
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo"><div class="dot"></div>Max Matthew</a>
+    <div class="nav-breadcrumb">
+      <span>Projects</span>
+      <span style="color:var(--text-dim)">/</span>
+      <span class="current">Mode-Decoupled Suspension</span>
+    </div>
+    <a href="index.html#projects" class="nav-back">&#8592; Back</a>
+  </div>
+</nav>
+
+<section class="article-hero">
+  <div class="article-hero-inner">
+    <div class="article-hero-text">
+      <div class="article-hero-meta">
+        <div class="article-tag"><div class="pulse"></div>ONGOING R&D</div>
+        <div class="article-tag article-tag-amber">TEAM HARE · FSUK 2026</div>
+        <div class="article-tag article-tag-green">FYP · 1ST CLASS TARGET</div>
+      </div>
+      <h1>Design &amp; Analysis of a<br><span class="accent">Mode-Decoupled</span><br>Suspension System</h1>
+      <p class="article-hero-sub">A week-by-week engineering diary covering the full lifecycle of a Formula Student suspension system — from first principles research through simulation, component design, manufacture, and physical validation.</p>
+      <div class="article-hero-stats">
+        <div class="article-stat"><span class="num">80</span><span class="label">Machined<br>components</span></div>
+        <div class="article-stat"><span class="num">48</span><span class="label">Assemblies<br>tracked</span></div>
+        <div class="article-stat"><span class="num">37</span><span class="label">Drawings<br>approved</span></div>
+        <div class="article-stat"><span class="num">4+</span><span class="label">Simulation<br>layers</span></div>
+      </div>
+    </div>
+    <div class="hero-render">
+      <img src="Full Suspension Render.png" alt="Suspension system render" />
+    </div>
+  </div>
+</section>
+
+<div class="article-layout">
+  <aside class="article-toc">
+    <div class="toc-sticky">
+      <div class="toc-label">Contents</div>
+      <ul class="toc-list">
+        <li><a href="#entry-01">01 — Kickoff</a></li>
+        <li><a href="#entry-02">02 — Simulation Stack</a></li>
+        <li><a href="#entry-03">03 — Geometry</a></li>
+        <li><a href="#entry-04">04 — ARB Spec</a></li>
+        <li><a href="#entry-05">05 — Part Design</a></li>
+        <li><a href="#entry-06">06 — Manufacture Prep</a></li>
+        <li><a href="#entry-07">07 — Design Freeze</a></li>
+        <li><a href="#entry-08">08 — Into Production</a></li>
+      </ul>
+      <div class="toc-divider"></div>
+      <div class="toc-label">Resources</div>
+      <a href="#" class="toc-entry-link">Adams Car Model</a>
+      <a href="#" class="toc-entry-link">Geometry Calculator</a>
+      <a href="#" class="toc-entry-link">MATLAB Tools</a>
+    </div>
+  </aside>
+
+  <main class="article-body">
+
+    <!-- ═══ ENTRY 01 ═══ -->
+    <div class="entry-block fade-up" id="entry-01">
+      <div class="entry-header">
+        <div class="entry-num-large">01</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">Project Kickoff &nbsp;·&nbsp; September 2025</div>
+          <div class="entry-title-large">Formula Student, First Principles, &amp; Why Any of This Matters</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+
+        <div class="prose-section">
+          <h3>What is Formula Student?</h3>
+          <p>Formula Student is an international engineering design competition run by the Institution of Mechanical Engineers, where university teams design, build, and race a single-seat open-wheel racing car from scratch. Teams compete across a series of static and dynamic events that together test not just the car, but the engineering rigour behind every decision that shapes it.</p>
+          <div class="fs-chip-row">
+            <div class="fs-chip"><div class="fc-label">Static events</div><div class="fc-val">Design, cost &amp; business presentation</div></div>
+            <div class="fs-chip"><div class="fc-label">Dynamic events</div><div class="fc-val">Acceleration, skidpan, autocross, endurance</div></div>
+            <div class="fs-chip"><div class="fc-label">Total available</div><div class="fc-val">1000 points across all disciplines</div></div>
+          </div>
+          <p>The points split matters more than most people realise. Of the 1000 total, 325 points are awarded across the static events alone - design is worth 150, cost 100, and business presentation 75. The dynamic events split the remaining 675 between acceleration (75), skidpan (75), autocross (100), and the flagship endurance and efficiency event (425 combined). What this means in practice is that a team that builds a genuinely fast car but cannot explain it to the design judges is leaving nearly a third of the available points on the table before a wheel has turned.</p>
+          <p>The design event is arguably the most intellectually demanding part of the competition. A panel of industry judges - many of them working chassis, suspension, and vehicle dynamics engineers at OEMs and motorsport organisations - dissect every engineering choice in the car. They are not interested in whether it looks fast; they want to know why you chose that spring rate, what your load transfer analysis tells you, and how you validated your choices. For a suspension engineer specifically, it is as close as you get as a student to a genuine engineering design review.</p>
+          <div class="pullquote">
+            <p>"The fastest setup is worthless if you can't explain why it works."</p>
+            <cite>- Paraphrased from Milliken &amp; Milliken, Race Car Vehicle Dynamics (1995)</cite>
+          </div>
+        </div>
+
+        <div class="prose-section">
+          <h3>Why it matters for an aspiring vehicle dynamics engineer</h3>
+          <p>Most undergraduate engineering projects involve analysis of an existing system, or design of a single component in isolation. Formula Student is different in one crucial respect: you own the full lifecycle. The suspension on this car starts as an idea rooted in vehicle dynamics theory, gets developed through analytical tools I am building myself, refined through simulation, translated into manufactured components, and will ultimately be validated through physical testing on track. That complete chain - from first principles to physical evidence - is rare at undergraduate level, and it is exactly the kind of work that translates directly to industry roles in vehicle dynamics, chassis engineering, and motorsport.</p>
+          <p>There is also the constraint-driven nature of the work. Industry does not hand you unconstrained design freedom, and neither does Formula Student. Packaging envelopes, regulatory compliance, manufacturing capability, weight targets, and budget all push back against the ideal solution. Learning to navigate that - to make defensible engineering trade-offs rather than just optimising a single variable - is the real education.</p>
+        </div>
+
+        <div class="prose-section">
+          <h3>The project in context</h3>
+          <p>This project concerns the suspension system for Team HARE's 2026 car. The suspension system is the interface between the tyre and the chassis, and its job is to keep as much of each tyre's contact patch pressed against the road as possible, in as many conditions as possible. More contact patch means more grip, more cornering speed, harder braking, and faster acceleration.</p>
+          <p>But the fastest car on paper is not always the fastest car in practice. As Milliken &amp; Milliken note in Race Car Vehicle Dynamics, a suspension system set up perfectly for a theoretical ideal driver may be genuinely difficult to drive at the limit. So the design target is not just peak grip - it is a system with enough independent tunability that we can shape the car's behaviour around the driver. That is the core motivation for mode decoupling.</p>
+        </div>
+
+        <div class="prose-section">
+          <h3>The body modes - and why decoupling them matters</h3>
+          <p>A car's body moves in four principal ways relative to its wheels, each governed by different physical mechanisms and each affecting vehicle behaviour in distinct ways. This framework is set out clearly by Milliken &amp; Milliken and Olley in Chassis Design: Principles and Analysis.</p>
+          <div class="mode-grid">
+            <div class="mode-card">
+              <div class="mode-axis">Vertical translation</div>
+              <div class="mode-name">Heave</div>
+              <div class="mode-desc">All four wheels move together. Governed by combined spring and damper stiffness. Affects ride frequency and, in high-downforce cars, aerodynamic platform stability.</div>
+            </div>
+            <div class="mode-card">
+              <div class="mode-axis">Longitudinal rotation</div>
+              <div class="mode-name">Roll</div>
+              <div class="mode-desc">Body rotates about the car's long axis in cornering. Determined by roll stiffness distribution and roll centre geometry. Directly controls lateral load transfer and grip balance.</div>
+            </div>
+            <div class="mode-card">
+              <div class="mode-axis">Lateral rotation</div>
+              <div class="mode-name">Pitch</div>
+              <div class="mode-desc">Body rotates about the lateral axis under braking and acceleration. Controlled by longitudinal stiffness and anti-dive/anti-squat geometry. Affects braking stability and driver feedback.</div>
+            </div>
+            <div class="mode-card">
+              <div class="mode-axis">Vertical rotation / diagonal</div>
+              <div class="mode-name">Yaw / warp</div>
+              <div class="mode-desc">Rotation about the vertical axis or diagonal load transfer across axles. Influenced by mass moments of inertia, suspension compliance, and tyre properties.</div>
+            </div>
+          </div>
+          <p>In a conventional spring-and-damper suspension, these modes are inherently coupled - changing the spring rate to stiffen heave also changes roll stiffness, and adjusting roll stiffness via springs affects ride frequency. Mode decoupling breaks these dependencies apart. For Team HARE's low-downforce car, the meaningful gains are in decoupling roll from pitch stiffness via ARBs, rather than investing in a full heave decoupling system that would add mass and complexity for limited return.</p>
+        </div>
+
+        <div class="entry-img">
+          <img src="Chassis-Modes_Illustration.png" alt="Chassis modes illustration" />
+          <div class="img-caption">Fig. 1 - Chassis Modes; Illustration 1 [Zapletal. (2000) Balanced Suspension]</div>
+        </div>
+
+        <div class="prose-section">
+          <h3>Choosing the architecture - double wishbone</h3>
+          <p>The double wishbone configuration emerges as the clear choice after reviewing the alternatives. It offers precise kinematic control over camber gain, roll centre height, and instant centre location - all tunable through hardpoint placement. As Theander demonstrates in Design of a Suspension for a Formula Student Race Car, the inboard rocker layout allows springs, dampers, and ARB pickup points to be positioned centrally, keeping unsprung mass low and the centre of gravity close to the floor. This aligns directly with the theoretical frameworks of Milliken, Olley, and Pacejka - and it is the dominant architecture in Formula Student for good reason.</p>
+        </div>
+
+        <div class="prose-section">
+          <h3>Reviewing existing decoupling approaches</h3>
+          <div class="review-grid">
+            <div class="review-item">
+              <div><div class="review-item-name">AMZ Passive Hydraulic</div><div class="review-item-verdict verdict-no">NOT SUITABLE</div></div>
+              <div class="review-item-desc">Dedicated hydraulic circuits and accumulators achieve clean roll/heave separation - a genuine benchmark. But significant mass, hydraulic complexity, and safety considerations sit awkwardly within FS regulations on pressure containment.</div>
+            </div>
+            <div class="review-item">
+              <div><div class="review-item-name">FRIC Systems</div><div class="review-item-verdict verdict-no">NOT SUITABLE</div></div>
+              <div class="review-item-desc">Front-rear interconnected dampers offer pitch and heave stability benefits but are primarily relevant in high-downforce applications. Risk of being interpreted as an active aerodynamic device under the rules.</div>
+            </div>
+            <div class="review-item">
+              <div><div class="review-item-name">Heave Springs</div><div class="review-item-verdict verdict-future">FUTURE DEV.</div></div>
+              <div class="review-item-desc">A dedicated spring element within the rocker assembly resists symmetric wheel movement but not asymmetric (roll) movement. Simple and rule-compliant. Adequate heave behaviour achievable via spring rate selection for now.</div>
+            </div>
+            <div class="review-item">
+              <div><div class="review-item-name">Anti-Roll Bars</div><div class="review-item-verdict verdict-yes">SELECTED</div></div>
+              <div class="review-item-desc">Contribute roll stiffness without affecting heave stiffness. Easily adjusted between sessions. Integrate cleanly into the double wishbone layout. The primary mode-decoupling mechanism for this design.</div>
+            </div>
+            <div class="review-item">
+              <div><div class="review-item-name">Inerters &amp; TMDs</div><div class="review-item-verdict verdict-no">NOT SUITABLE</div></div>
+              <div class="review-item-desc">Mass and manufacturing complexity make inerters and tuned mass dampers unsuitable for this context at Team HARE, despite their theoretical interest in influencing dynamic response frequencies.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="prose-section">
+          <h3>Simulation methodology</h3>
+          <p>Rather than jumping straight into CAD, the plan is to build up a layered simulation framework. Each layer adds fidelity and is cross-validated against the one below it before adding complexity.</p>
+          <div class="sim-stack">
+            <div class="sim-layer"><div class="sim-layer-num">01</div><div class="sim-layer-name">Excel geometry tool</div><div class="sim-layer-desc">Converts hardpoints into dynamic properties. Calculates spring rates, motion ratios, and ARB stiffnesses from first principles.</div></div>
+            <div class="sim-layer"><div class="sim-layer-num">02</div><div class="sim-layer-name">Point mass model</div><div class="sim-layer-desc">Load transfer analysis and comparison against existing data from the 2022 car. Target-setting baseline.</div></div>
+            <div class="sim-layer"><div class="sim-layer-num">03</div><div class="sim-layer-name">MSC Adams Car</div><div class="sim-layer-desc">Multi-body dynamic simulation for detailed kinematic and compliance analysis. 2021 vs. 2026 car comparison.</div></div>
+            <div class="sim-layer"><div class="sim-layer-num">04</div><div class="sim-layer-name">Track validation</div><div class="sim-layer-desc">Physical on-track testing to correlate against the Adams model and validate the design targets set at the start of the project.</div></div>
+          </div>
+        </div>
+
+        <div class="tag-row">
+          <span class="entry-tag">Literature review</span>
+          <span class="entry-tag">Double wishbone</span>
+          <span class="entry-tag">Body modes</span>
+          <span class="entry-tag">Mode decoupling</span>
+          <span class="entry-tag">ARB strategy</span>
+          <span class="entry-tag">Simulation methodology</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ENTRY 02 ═══ -->
+    <div class="entry-block fade-up" id="entry-02">
+      <div class="entry-header">
+        <div class="entry-num-large">02</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">Tooling Sprint &nbsp;·&nbsp; October – November 2025</div>
+          <div class="entry-title-large">Building the Simulation Stack</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+        <div class="prose-section">
+          <p>Every project needs a solid foundation, so the first few weeks are spent deep in the literature. The usual suspects are on the reading list - Milliken &amp; Milliken, Gillespie, Pacejka - alongside more niche references like Theander's Formula Student suspension design thesis. It is the kind of reading that takes time but pays back tenfold later.</p>
+          <p>Rather than jumping straight into CAD, the focus here is on building the analytical infrastructure - the tools that underpin every design decision downstream. It is a productive sprint, and some of the outputs end up being useful well beyond this project.</p>
+          <p>The centrepiece is a comprehensive Excel suspension geometry tool. Feed in the hardpoints, and it outputs dynamic properties, tyre stiffnesses, spring rates, motion ratios, anti-roll bar characteristics, and wishbone lengths. On top of that: a MATLAB data analysis GUI for processing MoTeC telemetry from the car's dashboard (now used across teams), a G-G diagram tool for visualising lateral and longitudinal acceleration and understanding load transfer, and a Pacejka 5 regression tool using Tyre Test Consortium data - the latter feeding directly into Adams Car modelling later.</p>
+          <p>Early CAD work begins in parallel, mostly to understand rocker positions and think through the chassis changes that will be needed. ARB specification is also started. The design machine is warming up.</p>
+        </div>
+        <div class="entry-img">
+          <img src="Suspension-Geometry-Calculator.png" alt="Excel suspension geometry calculator" />
+          <div class="img-caption">Fig. 2 - Excel suspension geometry calculator [Matthew. (2025)]</div>
+        </div>
+        <div class="tag-row">
+          <span class="entry-tag active">Tools built</span>
+          <span class="entry-tag">Excel geometry tool</span>
+          <span class="entry-tag">MATLAB / MoTeC</span>
+          <span class="entry-tag">Pacejka 5 regression</span>
+          <span class="entry-tag">G-G diagram</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ENTRY 03 ═══ -->
+    <div class="entry-block fade-up" id="entry-03">
+      <div class="entry-header">
+        <div class="entry-num-large">03</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">Design Phase &nbsp;·&nbsp; November – December 2025</div>
+          <div class="entry-title-large">Geometry Locked In - Front &amp; Rear Initial Designs</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+        <div class="prose-section">
+          <p>The initial front and rear suspension designs are now done - geometrically fixed, with spring rates and ride frequencies calculated. The big remaining task is translating geometry into actual components, but the hard thinking about where everything lives is settled.</p>
+          <p>Rockers are sized based on motion ratios and pushrod angles, and the ARB specification work begins in earnest - though an early error (calculating springs in series rather than parallel) means those numbers need to be revisited. A useful reminder that first-pass calculations always need a sanity check.</p>
+          <p>The to-do list at this stage is substantial: ARB design, force calculations across all components, full component design (wishbones, pushrods, rockers, toe links, steering arms, ARB links and arms, diff hanger brace), FEA, drawings, manufacture, Adams modelling, tube testing, and track validation. A long road ahead, but the path is clear.</p>
+        </div>
+        <div class="entry-img">
+          <img src="Initial-Suspension-Geometry.png" alt="Initial suspension geometry" />
+          <div class="img-caption">Fig. 3 - Initial suspension geometry</div>
+        </div>
+        <div class="tag-row">
+          <span class="entry-tag">Spring rates</span>
+          <span class="entry-tag">Rocker geometry</span>
+          <span class="entry-tag">ARB specification started</span>
+          <span class="entry-tag">Front &amp; rear design</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ENTRY 04 ═══ -->
+    <div class="entry-block fade-up" id="entry-04">
+      <div class="entry-header">
+        <div class="entry-num-large">04</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">ARB Deep-Dive &nbsp;·&nbsp; December 2025</div>
+          <div class="entry-title-large">Anti-Roll Bar Specification - Harder Than Expected</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+        <div class="prose-section">
+          <p>One thing is clear this fortnight: ARB specification takes far longer than anticipated. It always does. The material choice lands on 4130 chromoly steel - good availability, well-understood fatigue behaviour, and weldable. A supplier is sourced.</p>
+          <p>Target diameters come out at 10 mm front and rear for ideal roll stiffnesses, with a high-level CAD model started to house everything. FEA on the chassis mounts is flagged as upcoming work, with the key question being how to correctly define the worst-case load - not just spring rate times maximum travel, but accounting for suspension bottoming-out scenarios.</p>
+          <p>Progress is slower than ideal here, but getting the ARB specification right is genuinely important - it is the primary roll stiffness tuning mechanism for the whole car, so it is worth the time.</p>
+        </div>
+
+        <div class="tag-row">
+          <span class="entry-tag">4130 chromoly steel</span>
+          <span class="entry-tag">10 mm diameter (F&amp;R)</span>
+          <span class="entry-tag">CAD started</span>
+          <span class="entry-tag">FEA scoped</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ENTRY 05 ═══ -->
+    <div class="entry-block fade-up" id="entry-05">
+      <div class="entry-header">
+        <div class="entry-num-large">05</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">Component Design &nbsp;·&nbsp; January 2026</div>
+          <div class="entry-title-large">95% Complete - Parts Taking Shape</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+        <div class="prose-section">
+          <p>A satisfying update: full part design hits approximately 95% completion. Pushrods, wishbones, rockers, and roll bars are all done in CAD form. The rear ARB is converted from a U-bar to a T-bar configuration - a better packaging solution that also saves some weight. Front and rear rockers are redesigned for improved packaging while keeping the same geometry.</p>
+          <p>Bearing specification is complete. The ARB diameters are revised: 5/16 in. at the rear, 10 mm at the front - a small but meaningful change from the earlier iteration.</p>
+          <p>Remaining work: toe links, part mirroring, FEA of nodes and bars, and production drawings for all in-house manufactured components. A manufacturing team meeting is on the calendar for the end of the week.</p>
+        </div>
+        <div class="entry-img">
+          <img src="Rear-T-Bar.png" alt="Rear T-bar ARB CAD" />
+          <div class="img-caption">Fig. 4 - Rear T-bar CAD</div>
+        </div>
+        <div class="tag-row">
+          <span class="entry-tag active">Design ~95% done</span>
+          <span class="entry-tag">T-bar rear ARB</span>
+          <span class="entry-tag">Bearings specified</span>
+          <span class="entry-tag">Revised ARB diameters</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ENTRY 06 ═══ -->
+    <div class="entry-block fade-up" id="entry-06">
+      <div class="entry-header">
+        <div class="entry-num-large">06</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">Manufacture Prep &nbsp;·&nbsp; January – February 2026</div>
+          <div class="entry-title-large">Logistics, Materials &amp; Manufacturability</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+        <div class="prose-section">
+          <p>The focus shifts here from design to getting parts actually made. Two components (and their mirrors) are changed following manufacturing team feedback - a necessary but slightly humbling step that comes with every real engineering project.</p>
+          <p>Material selections are finalised: Aluminium 7075-T6 for most nodes and structural linkages, 6082 for non-load-bearing parts where lower cost and slight weight saving make sense, and 4130 steel for anything welded. DIN ISO 286 press-fit tolerances are applied across bearing interfaces.</p>
+          <p>The model is populated with fixtures and fittings, material and component orders are initiated (CFRP tubes, aluminium, steel, adhesives), and the first production drawings start flowing out. With 80 individual machined parts and 48 assemblies to track, keeping on top of the logistics becomes a project in itself.</p>
+        </div>
+        <div class="stat-row">
+          <div class="stat-card"><div class="s-label">Structural nodes &amp; links</div><div class="s-val">7075-T6 Al</div></div>
+          <div class="stat-card"><div class="s-label">Non-structural parts</div><div class="s-val">6082-T6 Al</div></div>
+          <div class="stat-card"><div class="s-label">Welded components</div><div class="s-val">4130 Steel</div></div>
+        </div>
+        <div class="entry-img">
+          <img src="TH26-CV-SU-00535.png" alt="Ride Height Adjustment Node Drawing" />
+          <div class="img-caption">Fig. 5 - Ride Height Adjustment Node Drawing</div>
+        </div>
+        <div class="tag-row">
+          <span class="entry-tag">7075-T6 aluminium</span>
+          <span class="entry-tag">DIN ISO 286 fits</span>
+          <span class="entry-tag">80 machined parts</span>
+          <span class="entry-tag">48 assemblies</span>
+          <span class="entry-tag">Materials ordered</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ENTRY 07 ═══ -->
+    <div class="entry-block fade-up" id="entry-07">
+      <div class="entry-header">
+        <div class="entry-num-large">07</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">FEA &amp; Drawings &nbsp;·&nbsp; February 2026</div>
+          <div class="entry-title-large">Design Frozen - FEA Results &amp; Drawing Approval</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+        <div class="prose-section">
+          <p>Design freeze. 37 parts and 2 welded assemblies are drawn, toleranced to DIN ISO 286, and approved by manufacturing. A significant milestone.</p>
+          <p>FEA is carried out on nodes and rocker assemblies, specifically to investigate whether parts can be downgraded from 7075-T6 to 6082-T6 aluminium (simulated as 6063-T6 in SolidWorks, which is functionally equivalent). The headline result: almost everything passes comfortably. The one exception is a stress concentration at the bearing interaction point of the worst-case node - but this is an artefact of modelling a bearing as a fixed point rather than a pivot. In reality, the plain spherical bearing allows rotation, so that "stretching" mode does not physically occur. All other regions on that node sit around 90 MPa, giving a factor of safety above 2.7 against 6082's yield strength.</p>
+          <p>The rocker FEA tells a more relaxed story: 0.1 mm deflection, under 10 MPa, FOS above 25. There is weight to be saved on the rocker plates, but given each one is about 20 g, the return on further iteration is judged to be minimal.</p>
+          <p>Material orders are placed, CFRP tube testing is scoped (axial compression, tension, and bending, with node overlap length as a variable), and the rear ARB receives a small geometry tweak to clear a clash at high bump/droop.</p>
+        </div>
+
+        <div class="tag-row">
+          <span class="entry-tag active">Design frozen</span>
+          <span class="entry-tag">FEA complete</span>
+          <span class="entry-tag">6082 approved</span>
+          <span class="entry-tag">37 drawings approved</span>
+          <span class="entry-tag">CFRP testing scoped</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ENTRY 08 ═══ -->
+    <div class="entry-block fade-up" id="entry-08">
+      <div class="entry-header">
+        <div class="entry-num-large">08</div>
+        <div class="entry-header-right">
+          <div class="entry-period-tag">Manufacture &nbsp;·&nbsp; February – March 2026</div>
+          <div class="entry-title-large">Into Production - Slow But Steady</div>
+        </div>
+      </div>
+      <div class="entry-divider"></div>
+      <div class="prose">
+        <div class="prose-section">
+          <p>An honest assessment: a slower couple of weeks. The bulk of the effort goes into updating models for manufacturability - the kind of detail work that does not feel dramatic but is genuinely important for making sure the parts come out right. Material arrives and further FEA is performed.</p>
+          <p>Work begins on the design of a test fixture for node and tube compression, tension, and bending tests - varying both node-to-tube overlap lengths and CFRP wall thicknesses. This is important validation work: understanding the actual failure modes of the bonded carbon assemblies will either confirm the 40 mm overlap as conservative (likely) or flag a problem before the car is loaded.</p>
+          <p>Adams Car simulation of both the 2021 and 2026 suspension layouts is queued - a critical step for comparing predicted dynamic behaviour and validating the design targets set at the start of the project.</p>
+          <p>Outstanding: cone washer modelling, bolt specification, steel chassis mount drawings, node/tube testing, and Adams Car validation. The finish line is in sight.</p>
+        </div>
+
+        <div class="progress-block">
+          <div class="progress-title">Project status tracker</div>
+          <div class="progress-items">
+            <div class="progress-item"><div class="p-icon p-done">&#10003;</div>Suspension geometry fixed (front &amp; rear)</div>
+            <div class="progress-item"><div class="p-icon p-done">&#10003;</div>All spring rates and motion ratios calculated</div>
+            <div class="progress-item"><div class="p-icon p-done">&#10003;</div>ARB specification complete (10 mm F / 5/16 in R)</div>
+            <div class="progress-item"><div class="p-icon p-done">&#10003;</div>37 parts drawn and manufacturing-approved</div>
+            <div class="progress-item"><div class="p-icon p-done">&#10003;</div>FEA complete on nodes and rocker</div>
+            <div class="progress-item"><div class="p-icon p-done">&#10003;</div>Material ordered and arriving</div>
+            <div class="progress-item"><div class="p-icon p-wip">&#8987;</div>Parts in manufacture</div>
+            <div class="progress-item"><div class="p-icon p-wip">&#8987;</div>CFRP tube test fixture design</div>
+            <div class="progress-item"><div class="p-icon p-todo">○</div>Adams Car simulation (2021 vs. 2026)</div>
+            <div class="progress-item"><div class="p-icon p-todo">○</div>Node / tube compression &amp; bending tests</div>
+            <div class="progress-item"><div class="p-icon p-todo">○</div>Track testing &amp; model correlation</div>
+          </div>
+        </div>
+        <div class="tag-row">
+          <span class="entry-tag">Manufacturability updates</span>
+          <span class="entry-tag">Material received</span>
+          <span class="entry-tag">Test fixture design</span>
+          <span class="entry-tag active">Adams Car — upcoming</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <span class="footer-left">&#169; 2026 &nbsp;·&nbsp; Max Matthew &nbsp;·&nbsp; Huddersfield, UK</span>
+    <div class="footer-links">
+      <a href="index.html">Home</a>
+      <a href="index.html#projects">Projects</a>
+      <a href="https://www.linkedin.com/in/maxmatthew/">LinkedIn</a>
+      <a href="/CV - Max Matthew.pdf">View CV</a>
+    </div>
+  </div>
+</footer>
+
 <div class="lightbox" id="lightbox">
   <div class="lightbox-inner">
     <div class="lightbox-close" id="lightbox-close">&#x2715;</div>
@@ -223,622 +636,49 @@
   </div>
 </div>
 
-<nav>
-  <div class="nav-inner">
-    <a href="index.html" class="nav-logo"><div class="dot"></div>Max Matthew</a>
-    <div class="nav-links">
-      <a href="index.html#skills">Skills</a>
-      <a href="index.html#experience">Experience</a>
-      <a href="index.html#education">Education</a>
-      <a href="index.html#projects">Projects</a>
-      <a href="index.html#insights">Insights</a>
-      <a href="index.html#contact">Contact</a>
-    </div>
-    <a href="index.html#insights" class="nav-back">
-      <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M9 3L5 7L9 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      Back to Insights
-    </a>
-  </div>
-</nav>
-
-<div class="article-hero">
-  <div class="article-hero-meta">
-    <span class="article-tag">TECHNICAL</span>
-    <span class="article-meta-item">March 2026</span>
-    <span class="article-meta-item">·</span>
-    <span class="article-meta-item">~15 min read</span>
-    <span class="article-meta-item">·</span>
-    <span class="article-meta-item">Team HARE CV · Formula Student</span>
-  </div>
-  <h1>How I Built a <span class="accent">Real-Time Suspension<br>Geometry Calculator</span> in Excel</h1>
-  <p class="lead">Walking through the full architecture of a double-wishbone suspension geometry tool - from 3D hardpoint matrices to instant centre computation, roll centre geometry, tyre modelling, load transfer analysis, and ARB sizing. All without a line of Python.</p>
-  <div class="article-stats">
-    <div class="article-stat"><span class="num">15</span><span class="lbl">Interconnected Sheets</span></div>
-    <div class="article-stat"><span class="num">500+</span><span class="lbl">Roll sweep data rows</span></div>
-    <div class="article-stat"><span class="num">&lt;0.05%</span><span class="lbl">Wishbone error vs CAD</span></div>
-    <div class="article-stat"><span class="num">R²≈0.97</span><span class="lbl">Tyre regression accuracy</span></div>
-  </div>
-</div>
-
-<div class="article-layout">
-<article class="article-body prose">
-
-<!-- 01 -->
-<div class="section-num">01 &nbsp;- MOTIVATION</div>
-<h2 id="why">Why I Built It - Learning by Building</h2>
-
-<p>I learn best by doing. Reading Milliken &amp; Milliken's <em>Race Car Vehicle Dynamics</em> cover to cover is one thing; building a tool that produces meaningful numbers from first principles is something else entirely. When I took on the Vehicle Dynamics role at Team HARE CV for Formula Student, I faced a choice: jump straight into CAD and worry about the maths later, or develop a rigorous analytical model first that would make every geometric decision traceable and defensible.</p>
-
-<p>I chose the latter - and Excel was the deliberate choice. Not because dedicated tools like OptimumKinematics or MSC Adams don't exist, but because building it myself forced me to understand every relationship at the equation level before trusting any output. If the formula is wrong, the number is wrong. There is no abstraction layer to hide behind. It also keeps the whole team in the loop - anyone can open it, interrogate a number, and follow the cell references back to the source without installing anything.</p>
-
-<div class="callout blue">
-  <div class="callout-icon">📚</div>
-  <div class="callout-text"><strong>Core references:</strong> Milliken &amp; Milliken - <em>Race Car Vehicle Dynamics</em>; Olley, Milliken &amp; Milliken - <em>Chassis Design, Principles &amp; Analysis</em>; Pacejka - <em>Tyre and Vehicle Dynamics</em>; Staniforth - <em>Competition Car Suspension</em>; Gillespie - <em>Fundamentals of Vehicle Dynamics</em>; Mitchell - <em>Roll Centre Myths and Reality</em>.</div>
-</div>
-
-<!-- 02 -->
-<div class="section-num" style="margin-top:56px">02 &nbsp;- ARCHITECTURE</div>
-<h2 id="architecture">Workbook Architecture - 15 Sheets, One Source of Truth</h2>
-
-<p>The workbook is structured around a single master input layer that propagates downstream. The guiding principle: <strong>no number should be typed in twice</strong>. Every sheet references the Dashboard; if a hardpoint changes, every output - roll centre, camber curve, spring rate, ARB diameter - updates instantly.</p>
-
-<div class="sheet-grid">
-  <div class="sheet-card"><div class="sheet-name">DASHBOARD</div><div class="sheet-desc">All 12 hardpoints, vehicle mass, CoG height, tyre pressures, track widths, wheelbase, and static camber. Single input layer for the entire workbook.</div></div>
-  <div class="sheet-card"><div class="sheet-name">SETUPS</div><div class="sheet-desc">Stores named geometry configurations - previous year baseline and new design - with a delta comparison table showing what changed and by how much.</div></div>
-  <div class="sheet-card"><div class="sheet-name">CALCS</div><div class="sheet-desc">Static geometry engine. Computes front-view and side-view instant centres, FVSA lengths, camber change rates, KPI, scrub radius, roll centres, and anti-dive/squat percentages.</div></div>
-  <div class="sheet-card"><div class="sheet-name">FRONT ROLL / REAR ROLL</div><div class="sheet-desc">Dynamic sweep across the full roll envelope in small increments, tracking every hardpoint through body roll using trigonometric rotation matrices.</div></div>
-  <div class="sheet-card"><div class="sheet-name">FRONT &amp; REAR JOUNCE</div><div class="sheet-desc">Wheel travel analysis - jounce and droop behaviour, camber gain in bump, and FVSA length variation through the stroke.</div></div>
-  <div class="sheet-card"><div class="sheet-name">WISHBONES</div><div class="sheet-desc">Calculates 3D wishbone lengths from hardpoint coordinates and validates them against CAD measurements. A critical geometric consistency check.</div></div>
-  <div class="sheet-card"><div class="sheet-name">TYRE</div><div class="sheet-desc">Generates the tyre cross-section profile. Models contact patch deformation, static vertical deflection under load, and contact patch centre location.</div></div>
-  <div class="sheet-card"><div class="sheet-name">TYRE REGRESSION MODEL</div><div class="sheet-desc">Multi-variable linear regression mapping tyre pressure and wheel load to static spring rate, derived from manufacturer data.</div></div>
-  <div class="sheet-card"><div class="sheet-name">WEIGHT TRANSFER</div><div class="sheet-desc">Longitudinal and lateral load transfer under acceleration, braking, and cornering. Includes geometric and elastic components, tilt test check, and per-wheel force outputs.</div></div>
-  <div class="sheet-card"><div class="sheet-name">SPRINGS</div><div class="sheet-desc">Ride frequency targets, motion ratio calculation via rocker geometry, wheel travel limits, spring rate selection, and roll stiffness contribution from springs alone.</div></div>
-  <div class="sheet-card"><div class="sheet-name">ROCKER GEOMETRY</div><div class="sheet-desc">Computes front and rear motion ratios from rocker arm lengths, including the ARB motion ratio for both axles.</div></div>
-  <div class="sheet-card"><div class="sheet-name">ARB</div><div class="sheet-desc">Anti-roll bar torsional stiffness solver. Given required roll stiffness, ARB motion ratio, material properties and geometry - outputs required bar diameter for solid or hollow bars.</div></div>
-</div>
-
-<div class="figure">
-  <a class="figure-img-wrap" href="javascript:void(0)" data-caption="Fig. 1 - Dashboard tab: the single input layer. All 12 hardpoints defined in X, Y, Z coordinates referenced from wheel centre.">
-    <img src="Suspension-Geometry-Calculator.png" alt="Dashboard tab showing hardpoint input matrix and vehicle parameter summary">
-  </a>
-  <div class="figure-caption">Fig. 1 - Dashboard tab: the single input layer. All 12 hardpoints defined in X, Y, Z coordinates referenced from wheel centre.</div>
-</div>
-
-<!-- 03 -->
-<div class="section-num" style="margin-top:56px">03 &nbsp;- FOUNDATIONS</div>
-<h2 id="coordinates">Coordinate System &amp; Hardpoint Matrix</h2>
-
-<p>Before writing a single formula, I established a consistent coordinate convention:</p>
-<ul>
-  <li><strong>X:</strong> longitudinal axis - positive forward from wheel centre</li>
-  <li><strong>Y:</strong> lateral axis - positive outboard (away from vehicle centreline)</li>
-  <li><strong>Z:</strong> vertical axis - positive upward, with \(Z = 0\) at the road surface</li>
-</ul>
-
-<p>Each of the 12 hardpoints is defined in this space - six per axle, covering the upper arm chassis front and rear attachment, upper hub, lower arm chassis front and rear, and lower hub. Approximate values for the front axle sit in the region of: upper chassis points at around \(Y \approx 275\,\text{mm}\) outboard and \(Z \approx 250\,\text{mm}\), with lower chassis points at \(Y \approx 225\,\text{mm}\) and \(Z \approx 115\,\text{mm}\).</p>
-
-<p>The rear geometry follows the same six-point structure. One notable packaging compromise at the rear: the lower wishbone chassis attachment points sit higher than would be ideal from a pure geometry standpoint - closer to \(Z \approx 128\,\text{mm}\) rather than the lower values that would produce more favourable arm angles and a lower rear roll centre. This was a direct consequence of packaging constraints around the rear drivetrain and differential mounting. The pick-up points simply could not move downward without conflicting with structural and powertrain elements. This is one of many real-world compromises that distinguish a physical design from an analytically optimal one, and it is why the rear roll centre sits somewhat higher relative to the front than might otherwise be chosen.</p>
-
-<div class="callout yellow">
-  <div class="callout-icon">⚙️</div>
-  <div class="callout-text"><strong>Coordinate convention discipline matters.</strong> A common error in suspension geometry tools is inconsistent sign conventions between left and right sides. The calculator explicitly mirrors Y-coordinates for the right side, and all gradient calculations account for this sign flip to ensure roll centre computations are symmetric about the centreline.</div>
-</div>
-
-<!-- 04 -->
-<div class="section-num" style="margin-top:56px">04 &nbsp;- GEOMETRY ENGINE</div>
-<h2 id="instant-centres">Instant Centres and Roll Centre Height</h2>
-
-<p>The fundamental building block of front-view geometry is the <strong>Front View Swing Arm (FVSA)</strong> - the virtual arm connecting the wheel hub to the instant centre formed by the extended lines of the upper and lower wishbone arms, projected onto the YZ plane. This is the foundation for understanding camber behaviour and the geometric contribution to lateral force generation.</p>
-
-<h3>Line Gradient Computation</h3>
-
-<p>For each wishbone, the gradient of the arm line in the front view is computed from the chassis average and hub attachment points. For the upper arm:</p>
-
-<div class="formula-box">
-  <span class="formula-label">UPPER ARM GRADIENT - FRONT VIEW</span>
-  \[
-    m_\text{upper} = \frac{z_\text{hub} - z_\text{chassis,avg}}{y_\text{hub} - y_\text{chassis,avg}}
-  \]
-  <div class="formula-desc">The average chassis attachment point is used because the front-view projection collapses the longitudinal dimension - only Y and Z are relevant here.</div>
-</div>
-
-<p>The same calculation is performed for the lower arm. This is repeated for all four arms at both axles.</p>
-
-<h3>Instant Centre Location</h3>
-
-<p>The instant centre for each side is the intersection of the two arm line extensions. Using point-gradient form, this reduces to a closed-form simultaneous equation - no iteration required:</p>
-
-<div class="formula-box">
-  <span class="formula-label">FRONT VIEW INSTANT CENTRE</span>
-  \[
-    Y_\text{IC} = \frac{z_\text{lower,hub} - z_\text{upper,hub} + m_\text{upper}\,y_\text{upper,hub} - m_\text{lower}\,y_\text{lower,hub}}{m_\text{upper} - m_\text{lower}}
-  \]
-  \[
-    Z_\text{IC} = z_\text{lower,hub} + m_\text{lower}\!\left(Y_\text{IC} - y_\text{lower,hub}\right)
-  \]
-</div>
-
-<p>The front FVSA length - from the wheel contact patch to the instant centre - is approximately <strong>1,500&nbsp;mm</strong>. The rear is shorter at around <strong>1,050&nbsp;mm</strong>, producing a higher camber gain rate at the rear axle through roll - intentional, and discussed further in the roll sweep section.</p>
-
-<h3>The Kinematic Roll Centre - and Why It's Less Useful Than It Looks</h3>
-
-<p>The kinematic roll centre is found by constructing a line from each tyre contact patch to its respective instant centre, and noting where the two lines cross at the vehicle centreline:</p>
-
-<div class="formula-box">
-  <span class="formula-label">ROLL CENTRE HEIGHT - KINEMATIC CONSTRUCTION</span>
-  \[
-    m_\text{RC} = \frac{Z_\text{IC}}{Y_\text{IC} - Y_\text{contact}}
-    \qquad
-    Z_\text{RC} = -\,m_\text{RC} \cdot Y_\text{contact}
-  \]
-  <div class="formula-desc">Where \(Y_\text{contact}\) is the lateral position of the tyre contact patch centre. The roll centre sits at \(Z_\text{RC}\) on the vehicle centreline.</div>
-</div>
-
-<p>The current geometry produces an approximate front roll centre of <strong>~45&nbsp;mm</strong> and a rear of <strong>~105&nbsp;mm</strong>. It is worth being direct, however, about the limitations of these numbers and how much weight they should carry in design decisions.</p>
-
-<div class="callout red">
-  <div class="callout-icon">⚠️</div>
-  <div class="callout-text">
-    <strong>Roll centre myths and reality.</strong> The kinematic roll centre is frequently treated as a primary design target, but its physical significance is more limited than commonly assumed. As Mitchell writes in <em>Roll Centre Myths and Reality</em>: <em>"The FAPs and the Force-Based Roll Center are important. The Kinematic Roll Center is of little value."</em>
-    <br><br>
-    The kinematic construction assumes rigid bodies, massless links, and no tyre compliance - none of which hold under dynamic loading. What actually governs the geometric component of lateral load transfer are the <strong>Force Application Points (FAPs)</strong> - the points through which suspension links physically apply lateral force to the sprung mass - which do not in general coincide with the kinematic roll centre. Under large lateral accelerations with compliant tyres, the force-based roll centre migrates substantially from its kinematic prediction.
-    <br><br>
-    The value of tracking kinematic roll centre in this tool is therefore primarily comparative: understanding how geometry changes shift it <em>relative to a baseline</em> is useful for directional tuning. Treating its absolute position as a direct prediction of vehicle behaviour is not justified.
-  </div>
-</div>
-
-<div class="metric-strip">
-  <div class="metric-item"><span class="m-val">~45 mm</span><span class="m-label">Approx. front roll centre height</span></div>
-  <div class="metric-item"><span class="m-val">~105 mm</span><span class="m-label">Approx. rear roll centre height</span></div>
-  <div class="metric-item"><span class="m-val">~1,500 mm</span><span class="m-label">Front FVSA length</span></div>
-  <div class="metric-item"><span class="m-val">~1,050 mm</span><span class="m-label">Rear FVSA length</span></div>
-</div>
-
-<div class="figure">
-  <a class="figure-img-wrap" href="javascript:void(0)" data-caption="Fig. 2 - Front view geometry: instant centre construction and kinematic roll centre derivation. The chart auto-updates when hardpoints change.">
-    <img src="Front-View-Geometry.png" alt="Front view geometry diagram showing arm lines, instant centre and roll centre construction">
-  </a>
-  <div class="figure-caption">Fig. 2 - Front view geometry: instant centre construction and kinematic roll centre derivation. The chart auto-updates when hardpoints change.</div>
-</div>
-
-<!-- 05 -->
-<div class="section-num" style="margin-top:56px">05 &nbsp;- CAMBER &amp; STEERING GEOMETRY</div>
-<h2 id="camber">Camber Change Rate, KPI, and Scrub Radius</h2>
-
-<h3>Camber Change Rate</h3>
-
-<p>Camber is the angle the wheel makes with the vertical when viewed from the front. Negative camber - the top of the wheel tilted inward - increases the contact patch loading on the outer edge of the tyre and is beneficial for lateral grip in cornering. The optimal camber angle for maximum lateral force is typically a small negative value, and maintaining that angle dynamically through bump and roll is the goal of camber change rate tuning.</p>
-
-<p>The camber change rate (CCR) defines how many degrees of camber the wheel gains per millimetre of wheel travel. It is directly derived from the FVSA length - a longer virtual swing arm produces a gentler camber change, a shorter arm produces aggressive camber gain. Too little camber gain and the tyre rolls onto its outer shoulder in cornering, reducing the effective contact patch. Too much and the camber becomes excessive at the limits of travel, increasing tyre wear and reducing straight-line stability:</p>
-
-<div class="formula-box">
-  <span class="formula-label">CAMBER CHANGE RATE</span>
-  \[
-    \text{CCR}\!\left[\tfrac{^\circ}{\text{mm}}\right] = \frac{180}{\pi \cdot L_\text{FVSA}}
-  \]
-  <div class="formula-desc">Front: approximately 0.035-0.040°/mm. Rear is slightly higher due to the shorter FVSA, giving more camber recovery under roll.</div>
-</div>
-
-<p>The rear axle deliberately has a higher CCR than the front. As the body rolls in a corner, the rear outer wheel needs to recover more camber relative to the road than the front - this partially compensates for the higher rear roll centre. If the rear camber gain were too gentle, the rear outer tyre would roll onto its shoulder under load, reducing rear grip and producing a tendency toward oversteer. The shorter rear FVSA is therefore a considered trade-off: more aggressive camber gain in exchange for the packaging constraint of a higher roll centre.</p>
-
-<h3>Kingpin Inclination (KPI) and Scrub Radius</h3>
-
-<p>The kingpin inclination (KPI) is the angle the steering axis makes with the vertical when viewed from the front of the car. It exists primarily for packaging reasons - tilting the steering axis inward at the top allows the upper hub point to sit further inboard, away from the wheel rim, without the lower point cutting into the brake disc or hub. KPI also contributes to a camber-restoring effect as the wheel is steered: as the wheel turns, KPI geometry causes the outer wheel to rise slightly, producing a small positive camber change that counteracts the negative camber induced by the steering angle. This self-centring behaviour adds to the returning feel of the steering.</p>
-
-<p>The scrub radius is the horizontal distance, measured at the road surface, between where the steering axis intersects the ground and the centre of the tyre contact patch. A positive scrub radius means the contact patch is outboard of the steering axis ground point. Under braking, a positive scrub radius creates a moment that tries to toe-in each front wheel, which is broadly stabilising. A negative scrub radius does the opposite - it is used deliberately in some FWD road cars to produce an outward toe moment under asymmetric braking, preventing the car from pulling toward the side with more grip. For a Formula Student car without power steering, a modest positive scrub radius is preferred for feel and directional stability, but it must be kept small enough to avoid heavy steering loads and shimmy sensitivity.</p>
-
-<p>The steering axis in the front view is defined by the upper and lower hub attachment points. KPI is the angle this axis makes with the vertical; the scrub radius is the lateral distance between where this axis meets the road and the tyre contact patch centre:</p>
-
-<div class="formula-box">
-  <span class="formula-label">KPI ANGLE AND SCRUB RADIUS</span>
-  \[
-    \text{KPI} = \arctan\!\left(\frac{y_\text{upper,hub} - y_\text{lower,hub}}{z_\text{upper,hub} - z_\text{lower,hub}}\right)
-  \]
-  \[
-    Y_\text{KPI,ground} = y_\text{lower,hub} - z_\text{lower,hub} \cdot \frac{y_\text{upper,hub} - y_\text{lower,hub}}{z_\text{upper,hub} - z_\text{lower,hub}}
-  \]
-  \[
-    r_\text{scrub} = Y_\text{contact} - Y_\text{KPI,ground}
-  \]
-</div>
-
-<p>The front design produces a KPI of approximately <strong>5.8°</strong> and a scrub radius in the region of <strong>30–35&nbsp;mm</strong>. Staniforth notes that a positive scrub radius introduces a self-centring moment under braking, while excessive values introduce shimmy sensitivity - the figure here sits comfortably within the accepted range for a Formula Student car without power steering.</p>
-
-<!-- 06 -->
-<div class="section-num" style="margin-top:56px">06 &nbsp;- SIDE VIEW GEOMETRY</div>
-<h2 id="antidive">Anti-Dive and Anti-Squat Percentages</h2>
-
-<p>Side-view geometry governs how the suspension reacts to longitudinal load transfer under braking (anti-dive) and acceleration (anti-squat). A 100% anti-dive geometry theoretically eliminates front suspension compression under braking - the geometry carries the pitching moment through the links rather than the springs. In practice, high anti-dive percentages cause harshness and deteriorate steering feel by coupling braking forces directly into the geometry, so the design point sits well below 100%.</p>
-
-<div class="formula-box">
-  <span class="formula-label">ANTI-DIVE PERCENTAGE - FRONT AXLE</span>
-  \[
-    Z_\text{SVSA@CoG} = Z_\text{contact} + m_\text{SVSA}\!\left(X_\text{CoG} - X_\text{contact}\right)
-  \]
-  \[
-    \text{Anti-dive}\,[\%] = \frac{Z_\text{SVSA@CoG}}{Z_\text{CoG}} \times f_\text{brake}
-  \]
-  <div class="formula-desc">Where \(m_\text{SVSA}\) is the side-view swing arm gradient from contact patch to instant centre, and \(f_\text{brake}\) is the proportion of braking force at that axle.</div>
-</div>
-
-<p>The current geometry gives approximately <strong>28–30% anti-dive</strong> at the front and a similar figure for anti-squat at the rear. Caster angle comes out at approximately <strong>5.8°</strong>, providing the trail and returnability expected for this application.</p>
-
-<!-- 07 -->
-<div class="section-num" style="margin-top:56px">07 &nbsp;- DYNAMIC SWEEP</div>
-<h2 id="roll-sweep">Dynamic Roll Sweep</h2>
-
-<p>The static geometry tells you what the suspension looks like at rest. The dynamic sweep tells you how it behaves. The Front Roll and Rear Roll sheets sweep body roll from 0° to approximately 5–6° in small increments, tracking every key geometric parameter continuously.</p>
-
-<p>At each roll step, body rotation is applied to all chassis-mounted hardpoints using a 2D rotation matrix about the longitudinal axis:</p>
-
-<div class="formula-box">
-  <span class="formula-label">ROTATION MATRIX - BODY ROLL APPLICATION</span>
-  \[
-    \begin{pmatrix} y' \\ z' \end{pmatrix}
-    =
-    \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix}
-    \begin{pmatrix} y \\ z \end{pmatrix}
-  \]
-  <div class="formula-desc">Hub hardpoints remain fixed (wheel-referenced); only chassis points rotate with the body. This models the relative motion between sprung and unsprung mass through cornering.</div>
-</div>
-
-<p>At each step the tool recomputes: updated arm line gradients, new instant centre location, roll centre height and lateral position, camber change rate, real wheel camber (body roll plus camber gain), FVSA length, and track width variation.</p>
-
-<div class="callout green">
-  <div class="callout-icon">✓</div>
-  <div class="callout-text"><strong>Why roll centre migration matters - within limits.</strong> As discussed, the kinematic roll centre is not a direct predictor of vehicle behaviour. However, tracking its migration through roll comparatively is still informative: a roll centre that drops rapidly through roll reduces the geometric load transfer contribution mid-corner, increasing reliance on the spring and ARB path. Understanding this shift helps calibrate how aggressively to set ARB rates relative to spring rates - even if the absolute numbers are treated with appropriate scepticism.</div>
-</div>
-
-<div class="figure">
-  <a class="figure-img-wrap" href="javascript:void(0)" data-caption="Fig. 3 - Roll centre migration through the body roll sweep. The front centre descends gradually while the rear remains more stable - consistent with the longer front FVSA.">
-    <img src="Roll-Centre-Migration.png" alt="Chart showing front and rear roll centre height versus body roll angle">
-  </a>
-  <div class="figure-caption">Fig. 3 - Roll centre migration through the body roll sweep. The front centre descends gradually while the rear remains more stable - consistent with the longer front FVSA.</div>
-</div>
-
-<!-- 08 -->
-<div class="section-num" style="margin-top:56px">08 &nbsp;- VALIDATION</div>
-<h2 id="wishbones">Wishbone Length Validation Against CAD</h2>
-
-<p>The Wishbones sheet provides a critical geometric consistency check: it computes the 3D Euclidean length of each wishbone arm from the hardpoint coordinates and compares these against CAD measurements.</p>
-
-<div class="formula-box">
-  <span class="formula-label">3D WISHBONE LENGTH</span>
-  \[
-    L = \sqrt{\,(\Delta x)^2 + (\Delta y)^2 + (\Delta z)^2\,}
-  \]
-</div>
-
-<div class="table-wrap">
-  <table class="data-table">
-    <thead><tr><th>Wishbone</th><th>Calculated (mm)</th><th>CAD (mm)</th><th>Error</th></tr></thead>
-    <tbody>
-      <tr><td>Front Upper - Forward arm</td><td class="value">~316</td><td>~316</td><td>&lt;0.03%</td></tr>
-      <tr><td>Front Upper - Rearward arm</td><td class="value">~292</td><td>~292</td><td>&lt;0.02%</td></tr>
-      <tr><td>Front Lower - Forward arm</td><td class="value">~366</td><td>~366</td><td>&lt;0.02%</td></tr>
-      <tr><td>Front Lower - Rearward arm</td><td class="value">~363</td><td>~363</td><td>&lt;0.03%</td></tr>
-      <tr><td>Rear Upper - Forward arm</td><td class="value">~364</td><td>~364</td><td>&lt;0.02%</td></tr>
-      <tr><td>Rear Lower - Forward arm</td><td class="value">~409</td><td>~409</td><td>&lt;0.01%</td></tr>
-    </tbody>
-  </table>
-</div>
-
-<p>All wishbone lengths agree with CAD to within less than 0.05%. If the 3D lengths match, the hardpoints are geometrically self-consistent - every downstream calculation is built on a correct foundation.</p>
-
-<!-- 09 - MERGED TYRE SECTION -->
-<div class="section-num" style="margin-top:56px">09 &nbsp;- TYRE MODELLING &amp; LOAD SENSITIVITY</div>
-<h2 id="tyre">Tyre Modelling, Load Sensitivity, and Why It Changes Everything</h2>
-
-<p>The tyre is not a rigid body. Under load it deflects, deforming the contact patch and altering the effective ride rate at the wheel. I used manufacturer-supplied static spring rate data across a matrix of tyre pressures and vertical loads, and fitted a regression model to this data.</p>
-
-<h3>Regression Model</h3>
-
-<p>With nine data points spanning three pressure levels and three load levels, a multiple linear regression was performed in Excel's Analysis ToolPak, modelling spring rate as a function of tyre pressure and vertical load:</p>
-
-<div class="formula-box">
-  <span class="formula-label">TYRE SPRING RATE REGRESSION</span>
-  \[
-    k_\text{tyre} = \beta_0 + \beta_1\,P + \beta_2\,W
-  \]
-  <div class="formula-desc">
-    where \(P\) = tyre pressure (bar), \(W\) = wheel load (kg)<br>
-    Approximate fitted coefficients: \(\beta_0 \approx 50{,}000\,\text{N/m}\), \(\beta_1 \approx 68{,}000\,\text{N/m/bar}\), \(\beta_2 \approx 190\,\text{N/m/kg}\)<br>
-    \(R^2 \approx 0.97\) - explaining approximately 97% of variance across the tested operating range.
-  </div>
-</div>
-
-<p>The manufacturer data implied a broadly linear relationship between wheel load and static spring rate - and with only nine data points, the regression confirms this holds reasonably well across the measured range. However, this linearity should not be taken as a general truth. It is a characteristic of the static spring rate measurement specifically, and it does not extend to the tyre's lateral force behaviour - which is where the picture becomes more complex and far more consequential for vehicle set-up.</p>
-
-<h3>Static Contact Patch Deflection</h3>
-
-<div class="formula-box">
-  <span class="formula-label">STATIC TYRE DEFLECTION</span>
-  \[
-    \delta_\text{tyre} = \frac{W_\text{corner}}{k_\text{tyre}}
-  \]
-  <div class="formula-desc">Approximately 6–7 mm at static corner load. This shifts the contact patch centre relative to the wheel centreline and feeds directly into the scrub radius and roll centre calculations.</div>
-</div>
-
-<h3>Tyre Load Sensitivity - Why Lateral Force Is Not Linear</h3>
-
-<p>Any discussion of lateral load transfer is incomplete without understanding <strong>tyre load sensitivity</strong>. It is arguably the most important single concept in vehicle dynamics set-up, and one of the most commonly glossed over.</p>
-
-<p>Unlike the approximately linear static spring rate, a tyre's lateral force generation is markedly <em>degressive</em> with vertical load. The simplest way to think about it is in terms of the tyre's coefficient of friction, or \(\mu\). As more vertical force is applied to the tyre, the <em>efficiency</em> of the tyre decreases - the effective \(\mu\) falls. The tyre produces more absolute lateral force, but proportionally less force per unit of vertical load. At low loads the relationship is roughly linear; as load increases, the tyre saturates and the rate of lateral force gain diminishes. This non-linearity is described thoroughly by Pacejka and is observable in any FSAE tyre dataset. Where the spring rate data suggested linearity was a safe approximation, the lateral force data makes clear it is not.</p>
-
-<div class="formula-box">
-  <span class="formula-label">TYRE LOAD SENSITIVITY - CONCEPTUAL</span>
-  \[
-    \frac{\partial F_y}{\partial F_z}\bigg|_{F_z = F_0 + \Delta F}
-    \;<\;
-    \frac{\partial F_y}{\partial F_z}\bigg|_{F_z = F_0}
-  \]
-  <div class="formula-desc">The marginal lateral force gained by adding load decreases as total load increases. The tyre becomes less efficient at high loads - additional vertical load buys proportionally less lateral grip.</div>
-</div>
-
-<p>The consequence for vehicle set-up is direct and important: <strong>lateral load transfer reduces total axle grip</strong>. Consider two wheels on the same axle, each carrying \(F_0\) of vertical load at rest. In a corner, load transfers by \(\Delta F\) - the outer wheel sees \(F_0 + \Delta F\) and the inner sees \(F_0 - \Delta F\). The outer wheel gains some lateral force capacity, but due to the falling \(\mu\), it gains <em>less</em> than the inner wheel loses. The axle's total lateral force potential decreases.</p>
-
-<p>This effect is not uniform across the car. Because the front and rear axles carry different static loads (set by the weight distribution) and experience different amounts of lateral load transfer (set by their respective roll stiffness share and roll centre heights), the reduction in effective \(\mu\) happens at different rates front to rear. An axle that is already heavily loaded statically will reach the degressive region of the tyre curve sooner under lateral load transfer. This means the relative efficiency of the front and rear axles shifts during cornering, directly affecting the balance of the car - and it is one reason why weight distribution, roll stiffness split, and roll centre heights all interact to set the final understeer or oversteer character of the vehicle.</p>
-
-<div class="callout blue">
-  <div class="callout-icon">💡</div>
-  <div class="callout-text"><strong>The practical implication for set-up:</strong> minimising lateral load transfer at each axle preserves grip. This is why a lower centre of gravity is always beneficial - it reduces the roll moment and therefore load transfer for a given lateral acceleration. It is also why ARB tuning matters: a stiffer ARB at one axle transfers more load there, reducing that axle's grip limit faster. The split between axles - not just the total stiffness - controls handling balance. A stiffer front ARB increases front load transfer relative to rear, pushing the car towards understeer. A stiffer rear ARB does the opposite.</div>
-</div>
-
-<p>This bears directly on the roll stiffness distribution computed in the Springs and ARB sheets. The 45/55 front/rear split in this design induces mild understeer as a stable baseline for a new driver and an unproven vehicle. A driver comfortable with the car can soften the front ARB, reducing front load transfer and recovering front grip balance.</p>
-
-<p>At approximately 1.3&nbsp;G lateral, the front outer wheel is carrying roughly <strong>2.4× its static load</strong>, and the inner is contributing relatively little lateral force. The linear spring rate model is still a valid input to the ride frequency and wheel rate calculations - but it is the non-linear lateral force behaviour that ultimately sets the grip limits at each axle, and that is where the load sensitivity picture matters most.</p>
-
-<p>The full interaction between load sensitivity, cornering stiffness, mechanical balance, and the understeer gradient is a topic that deserves its own treatment - I intend to write a dedicated article covering these in detail in the future.</p>
-
-<div class="figure">
-  <a class="figure-img-wrap" href="javascript:void(0)" data-caption="Fig. 4 - Tyre load sensitivity: the degressive Fy–Fz curve means the outer wheel's gain in lateral capacity is always less than the inner wheel's loss. Total axle grip falls with increasing load transfer.">
-    <img src="Lateral-Vs-Vertical.jpg" alt="Chart of tyre lateral force versus vertical load showing degressive relationship">
-  </a>
-  <div class="figure-caption">Fig. 4 - Tyre load sensitivity: the degressive \(F_y\)–\(F_z\) curve means the outer wheel's gain in lateral capacity is always less than the inner wheel's loss. Total axle grip falls with increasing load transfer.</div>
-</div>
-
-<!-- 10 -->
-<div class="section-num" style="margin-top:56px">10 &nbsp;- LOAD TRANSFER IN DETAIL</div>
-<h2 id="weight-transfer">Lateral Load Transfer - Decomposed</h2>
-
-<p>With tyre load sensitivity in mind, the Weight Transfer sheet becomes more than a force accounting exercise. The goal is not just to know how much load transfers - it is to understand <em>through which paths</em> it goes, and what that means for grip balance.</p>
-
-<h3>The Three Paths of Lateral Load Transfer</h3>
-
-<ol>
-  <li><strong>Unsprung mass load transfer</strong> - the wheels, hubs, and brake hardware are unsprung. Their contribution is \(\Delta F_\text{unsprung} = m_\text{us} \cdot a_y \cdot h_\text{us} / t\). Small, but fixed - it cannot be tuned.</li>
-  <li><strong>Geometric (jacking) load transfer</strong> - lateral tyre force is reacted through the suspension geometry directly into the sprung mass. The proportion going through this path is set by the roll centre height. This path involves no spring compression, produces no roll angle, and is not tunable without changing geometry.</li>
-  <li><strong>Elastic load transfer</strong> - the remainder of the lateral force is reacted through the springs and anti-roll bars, causing the body to roll until spring moments balance the applied load. This is the tunable portion.</li>
-</ol>
-
-<div class="formula-box">
-  <span class="formula-label">LATERAL LOAD TRANSFER - DECOMPOSED</span>
-  \[
-    \Delta F_\text{total} = \Delta F_\text{unsprung} + \Delta F_\text{geometric} + \Delta F_\text{elastic}
-  \]
-  \[
-    \Delta F_\text{geometric} = \frac{m_s \cdot a_y \cdot h_\text{RC}}{t}
-    \qquad
-    \Delta F_\text{elastic} = \frac{K_\phi \cdot \phi}{t}
-  \]
-  <div class="formula-desc">\(m_s\) = sprung mass, \(a_y\) = lateral acceleration, \(h_\text{RC}\) = roll centre height, \(t\) = track width, \(K_\phi\) = roll stiffness (Nm/°), \(\phi\) = roll angle.</div>
-</div>
-
-<h3>Roll Gradient</h3>
-
-<div class="formula-box">
-  <span class="formula-label">ROLL GRADIENT</span>
-  \[
-    \frac{d\phi}{da_y} = \frac{m_s \cdot g \cdot \left(h_\text{CoG} - h_\text{RC,eff}\right)}{K_{\phi,\text{total}}}
-  \]
-  <div class="formula-desc">Roll gradient target ≈ 1.5°/g, with a maximum roll angle of around 2.4° at peak lateral acceleration. \(h_\text{RC,eff}\) accounts for the front/rear roll centre distribution.</div>
-</div>
-
-<h3>Per-Wheel Loads</h3>
-
-<div class="formula-box">
-  <span class="formula-label">PER-WHEEL LOADS IN CORNERING</span>
-  \[
-    F_{z,\text{outer}} = \frac{W_\text{axle}}{2} + \Delta F_\text{axle}
-    \qquad
-    F_{z,\text{inner}} = \frac{W_\text{axle}}{2} - \Delta F_\text{axle}
-  \]
-</div>
-
-<p>At the skidpad scenario (approximately 1.3&nbsp;G lateral), the front outer wheel carries roughly <strong>~2,400&nbsp;N</strong> against the inner's <strong>~950&nbsp;N</strong>. At the maximum lateral acceleration target of around 1.6&nbsp;G this diverges further - bringing tyre load sensitivity directly into play, as discussed in the previous section.</p>
-
-<div class="metric-strip">
-  <div class="metric-item"><span class="m-val">~1.6 G</span><span class="m-label">Max lateral acceleration target</span></div>
-  <div class="metric-item"><span class="m-val">~800 N</span><span class="m-label">Front axle lateral load transfer</span></div>
-  <div class="metric-item"><span class="m-val">~600 N</span><span class="m-label">Rear axle lateral load transfer</span></div>
-  <div class="metric-item"><span class="m-val">PASS</span><span class="m-label">Tilt test - 60° front &amp; rear</span></div>
-</div>
-
-<!-- 11 -->
-<div class="section-num" style="margin-top:56px">11 &nbsp;- SPRING SELECTION</div>
-<h2 id="springs">Springs, Motion Ratio, and Ride Frequency</h2>
-
-<p>The Springs sheet connects geometric analysis to physical hardware. The chain is: target ride frequency → required wheel rate → account for motion ratio through the rocker → required spring rate → select from the available catalogue.</p>
-
-<div class="formula-box">
-  <span class="formula-label">MOTION RATIO - PUSH-ROD ACTUATED ROCKER</span>
-  \[
-    \text{MR} = \frac{L_\text{shock arm}}{L_\text{pushrod arm}} \cdot \sin(\alpha_\text{pushrod}) \cdot \cos(\alpha_\text{spring})
-  \]
-  <div class="formula-desc">Front MR ≈ 0.68, Rear MR ≈ 0.78. The spring only sees MR of the wheel displacement.</div>
-</div>
-
-<div class="formula-box">
-  <span class="formula-label">WHEEL RATE AND NATURAL FREQUENCY</span>
-  \[
-    K_\text{wheel} = K_\text{spring} \cdot \text{MR}^2
-    \qquad
-    f_n = \frac{1}{2\pi}\sqrt{\,\frac{K_\text{wheel}}{m_\text{corner}}\,}
-  \]
-  <div class="formula-desc">Targeting \(f_n \approx 2.2\,\text{Hz}\) front and \(2.0\,\text{Hz}\) rear. The higher front frequency resists pitch under braking and is typical for Formula Student applications.</div>
-</div>
-
-<p>Wheel travel is also verified: front jounce approximately <strong>70&nbsp;mm</strong>, droop approximately <strong>25&nbsp;mm</strong>, checked against load transfer scenarios to confirm the spring does not bottom out under maximum braking or cornering.</p>
-
-<!-- 12 -->
-<div class="section-num" style="margin-top:56px">12 &nbsp;- ANTI-ROLL BAR</div>
-<h2 id="arb">Anti-Roll Bar - Torsional Stiffness and Bar Sizing</h2>
-
-<p>With spring rates selected and their roll stiffness contribution known, the shortfall must come from the anti-roll bars. The ARB sheet accepts the required torsional stiffness, the ARB motion ratio through the rocker, material properties, and bar geometry - outputting the required diameter.</p>
-
-<div class="formula-box">
-  <span class="formula-label">REQUIRED ARB TORSIONAL STIFFNESS</span>
-  \[
-    K_{\phi,\text{ARB}} = \frac{K_{\phi,\text{required}} - K_{\phi,\text{springs}}}{\text{MR}_\text{ARB}^2}
-  \]
-</div>
-
-<div class="formula-box">
-  <span class="formula-label">SOLID CIRCULAR BAR - REQUIRED DIAMETER</span>
-  \[
-    K_t = \frac{G J}{L_\text{eff}\,L_\text{lever}^2}
-    \qquad \Rightarrow \qquad
-    d = \left(\frac{32\,K_t\,L_\text{eff}\,L_\text{lever}^2}{\pi\,G}\right)^{\!1/4}
-  \]
-  <div class="formula-desc">\(G\) = shear modulus (≈79 GPa for steel), \(J = \pi d^4/32\) for a solid bar. The tool also supports hollow bar geometry, adjusting \(J\) for the annular cross-section.</div>
-</div>
-
-<p>The resulting bar diameters are approximately <strong>12&nbsp;mm</strong> at the front and <strong>8&nbsp;mm</strong> at the rear - small, as expected for a lightweight Formula Student car. The hollow bar option allows mass to be saved at the cost of higher manufacturing complexity.</p>
-
-<!-- 13 -->
-<div class="section-num" style="margin-top:56px">13 &nbsp;- SETUP COMPARISON</div>
-<h2 id="comparison">Comparing Against the Previous Year's Baseline</h2>
-
-<p>The Setups sheet stores named configurations and computes the delta between them. The most significant changes from the previous year to the new design are in the lower wishbone mounting heights - lowering the lower chassis attachment points adjusts arm inclination angles, which cascades into anti-dive geometry and roll centre heights. Every change is fully traceable through the workbook.</p>
-
-<div class="table-wrap">
-  <table class="data-table">
-    <thead><tr><th>Parameter</th><th>Previous Year (approx.)</th><th>New Design (approx.)</th><th>Direction</th></tr></thead>
-    <tbody>
-      <tr><td>Front track width</td><td>~1,185 mm</td><td>~1,190 mm</td><td class="value">+5 mm wider</td></tr>
-      <tr><td>Rear track width</td><td>~1,140 mm</td><td>~1,140 mm</td><td class="value">Unchanged</td></tr>
-      <tr><td>Front lower chassis Z</td><td>~134 mm</td><td>~115 mm</td><td class="value">−19 mm lower</td></tr>
-      <tr><td>Rear upper hub outboard Y</td><td>~491 mm</td><td>~501 mm</td><td class="value">+10 mm outboard</td></tr>
-      <tr><td>Approx. front roll centre</td><td>~50 mm</td><td>~45 mm</td><td class="value">Slightly lower</td></tr>
-    </tbody>
-  </table>
-</div>
-
-<!-- 14 -->
-<div class="section-num" style="margin-top:56px">14 &nbsp;- REFLECTIONS</div>
-<h2 id="reflections">What I Learned - and What Comes Next</h2>
-
-<p>Building this calculator from first principles forces a depth of understanding that reading alone does not produce. When the roll centre came out in an unexpected location, tracing back through the instant centre computation was the only option - there was no black box to blame. That process is its own form of education.</p>
-
-<p>The tyre section was perhaps the most illuminating to build. It started as a straightforward regression exercise - the manufacturer data suggested a roughly linear relationship between load and spring rate, and that held up well enough for ride frequency calculations. But the moment you look at lateral force behaviour and see how rapidly the degressive curve diverges from that linear approximation, the priority of keeping the car flat becomes viscerally clear. The spring rate linearity is a safe modelling assumption in one context; in the context of grip, it is exactly the wrong assumption.</p>
-
-<p>Engaging with Mitchell's critique of the kinematic roll centre was also clarifying. It is tempting to treat a roll centre number as a target to hit - but understanding that the Force Application Points are what actually govern load transfer changes how you think about the geometry. The kinematic roll centre becomes a comparative tool rather than an absolute design constraint.</p>
-
-<p>Several areas remain in development. The Jounce and Droop sheets currently carry placeholder markers - the full wheel travel kinematics analysis is the next major addition. The tyre regression will be refined once on-car pressure and load data comes back from 4-post rig testing. And the whole workbook will be cross-validated against MSC Adams Car once the physical system is built, with Adams capturing the higher-order effects that a 2D/3D hybrid model inevitably misses.</p>
-
-<div class="callout blue">
-  <div class="callout-icon">🔗</div>
-  <div class="callout-text"><strong>This calculator is deployed on Team HARE CV and will be used to validate the suspension system ahead of the IMechE Formula Student UK event.</strong> If you're working on something similar and want to discuss the methodology, reach out via <a href="https://www.linkedin.com/in/maxmatthew/">LinkedIn</a> or <a href="/cdn-cgi/l/email-protection#f9949881b994988194988d8d919c8ed79a96d78c92">Email</a>.</div>
-</div>
-
-</article>
-
-<!-- SIDEBAR -->
-<aside class="article-sidebar">
-  <div class="sidebar-label">TABLE OF CONTENTS</div>
-  <ul class="toc-list">
-    <li><a href="#why">01 - Why I Built It</a></li>
-    <li><a href="#architecture">02 - Workbook Architecture</a></li>
-    <li><a href="#coordinates">03 - Coordinate System</a></li>
-    <li><a href="#instant-centres">04 - Instant Centres &amp; Roll Centre</a></li>
-    <li><a href="#camber">05 - Camber, KPI &amp; Scrub</a></li>
-    <li><a href="#antidive">06 - Anti-Dive &amp; Anti-Squat</a></li>
-    <li><a href="#roll-sweep">07 - Dynamic Roll Sweep</a></li>
-    <li><a href="#wishbones">08 - Wishbone Validation</a></li>
-    <li><a href="#tyre">09 - Tyre Modelling &amp; Load Sensitivity</a></li>
-    <li><a href="#weight-transfer">10 - Load Transfer (Detail)</a></li>
-    <li><a href="#springs">11 - Springs &amp; Motion Ratio</a></li>
-    <li><a href="#arb">12 - Anti-Roll Bar</a></li>
-    <li><a href="#comparison">13 - Setup Comparison</a></li>
-    <li><a href="#reflections">14 - Reflections</a></li>
-  </ul>
-  <hr class="sidebar-divider">
-  <div class="sidebar-section-title">KEY REFERENCES</div>
-  <ul class="sidebar-list">
-    <li><em>Race Car Vehicle Dynamics</em><br>Milliken &amp; Milliken</li>
-    <li><em>Chassis Design</em><br>Olley, Milliken &amp; Milliken</li>
-    <li><em>Tyre and Vehicle Dynamics</em><br>Hans B. Pacejka</li>
-    <li><em>Roll Centre Myths and Reality</em><br>Mitchell</li>
-    <li><em>Competition Car Suspension</em><br>Allan Staniforth</li>
-    <li><em>Fundamentals of Vehicle Dynamics</em><br>Thomas Gillespie</li>
-  </ul>
-  <hr class="sidebar-divider">
-  <div class="sidebar-section-title">TOOL SPECS</div>
-  <ul class="sidebar-list">
-    <li>Platform: <em>Microsoft Excel</em></li>
-    <li>Sheets: <em>15 interconnected</em></li>
-    <li>Wishbone error: <em>&lt;0.05% vs CAD</em></li>
-    <li>Regression R²: <em>≈0.97</em></li>
-    <li>Status: <em>Deployed - Team HARE CV</em></li>
-  </ul>
-</aside>
-
-</div><!-- /article-layout -->
-
-<footer>
-  <div class="footer-inner">
-    <span class="footer-left">© 2026 · Max Matthew · Huddersfield, UK</span>
-    <div class="footer-links">
-      <a href="https://www.linkedin.com/in/maxmatthew/">LinkedIn</a>
-      <a href="/CV - Max Matthew.pdf">View CV</a>
-      <a href="index.html">Home</a>
-    </div>
-  </div>
-</footer>
-
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-// ── TOC scroll spy ──────────────────────────────────────────────
-const headings = document.querySelectorAll('.prose h2[id]');
-const tocLinks = document.querySelectorAll('.toc-list a');
-const io = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      tocLinks.forEach(l => l.classList.remove('active'));
-      const a = document.querySelector(`.toc-list a[href="#${e.target.id}"]`);
-      if (a) a.classList.add('active');
-    }
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+  }, { threshold: 0.05, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+  const sections = document.querySelectorAll('.entry-block[id]');
+  const tocLinks = document.querySelectorAll('.toc-list a');
+  const tocObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        tocLinks.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`.toc-list a[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { threshold: 0.3, rootMargin: '-60px 0px -60% 0px' });
+  sections.forEach(s => tocObserver.observe(s));
+
+  const lightbox = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lightbox-img');
+  const lbCaption = document.getElementById('lightbox-caption');
+  const lbClose = document.getElementById('lightbox-close');
+
+  document.querySelectorAll('.entry-img img').forEach(img => {
+    img.addEventListener('click', () => {
+      lbImg.src = img.src;
+      lbImg.alt = img.alt;
+      const caption = img.closest('.entry-img').querySelector('.img-caption');
+      lbCaption.textContent = caption ? caption.textContent : '';
+      lightbox.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
   });
-}, { rootMargin: '-15% 0px -75% 0px' });
-headings.forEach(h => io.observe(h));
 
-// ── Lightbox ────────────────────────────────────────────────────
-const lightbox  = document.getElementById('lightbox');
-const lbImg     = document.getElementById('lightbox-img');
-const lbCaption = document.getElementById('lightbox-caption');
-const lbClose   = document.getElementById('lightbox-close');
+  function closeLightbox() {
+    lightbox.classList.remove('open');
+    document.body.style.overflow = '';
+  }
 
-document.querySelectorAll('.figure-img-wrap').forEach(wrap => {
-  wrap.addEventListener('click', e => {
-    e.preventDefault();
-    const img = wrap.querySelector('img');
-    lbImg.src = img.src;
-    lbImg.alt = img.alt;
-    lbCaption.textContent = wrap.dataset.caption || '';
-    lightbox.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  });
-});
-
-function closeLightbox() {
-  lightbox.classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-lbClose.addEventListener('click', closeLightbox);
-lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+  lbClose.addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 </script>
 </body>
 </html>
